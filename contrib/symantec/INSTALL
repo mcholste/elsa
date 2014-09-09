@@ -1,0 +1,26 @@
+Download freetds and install:
+sudo apt-get install freetds-dev
+
+Install the ODBC DBI driver:
+sudo cpanm DBD::ODBC
+
+You will need to setup an ODBC entry (usually in /etc/unixODBC/odbc.ini) for your Symantec database.  Here is an example:
+[symantec]
+Driver          = /usr/local/lib/libtdsodbc.so
+Description     = SAVWorkstation
+Trace           = Yes
+Server          = 10.10.10.10
+Port            = 1433
+Database        = SAVWorkstation
+App             = Microsoft SQL Server Management Studio Express
+WSID            = 127.0.0.1
+TDS_Version     = 7.0
+
+Edit /usr/local/elsa/contrib/symantec/symantec_logger.pl to set user/pass/elsa info.
+
+Test:
+perl /usr/local/elsa/contrib/symantec/symantec_logger.pl
+
+Run this from cron like so:
+* * * * * perl /usr/local/elsa/contrib/symantec/symantec_logger.pl > /dev/null 2>&1
+

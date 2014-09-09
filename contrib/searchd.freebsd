@@ -1,0 +1,70 @@
+#!/bin/sh
+#
+# $FreeBSD: ports/textproc/sphinxsearch-devel/files/sphinxsearch.sh.in,v 1.1 2008/01/19 11:53:15 edwin Exp $
+#
+# PROVIDE: searchd
+# REQUIRE: LOGIN
+# KEYWORD: shutdown
+
+#
+# Add the following lines to /etc/rc.conf to enable searchd:
+#
+# searchd_enable="YES"
+#
+# Other rc.conf variables:
+#
+# searchd_conffile="/usr/local/etc/sphinx.conf"
+# -- path to config file
+# searchd_pidfile="/var/run/searchd/searchd.pid"
+# -- location of pidfile: must match setting
+# in ${searchd_conffile}
+# searchd_user="_sphinx"
+# -- user to run searchd as
+# searchd_group="_sphinx"
+# -- group to run searchd as
+# searchd_logdir="/var/log/searchd"
+# -- directory searchd writes logs to
+#
+. /etc/rc.subr
+
+name=searchd
+rcvar=`set_rcvar`
+
+load_rc_config ${name}
+
+: ${searchd_enable="NO"}
+: ${searchd_conffile="/usr/local/etc/sphinx.conf"}
+: ${searchd_pidfile="/var/run/searchd.pid"}
+: ${searchd_user="root"}
+: ${searchd_group="root"}
+: ${searchd_logdir="/var/log"}
+
+command=/usr/local/sphinx/bin/searchd
+pidfile=${searchd_pidfile}
+required_files=${searchd_conffile}
+
+searchd_precmd ()
+{
+        piddir=$(dirname ${searchd_pidfile})
+        if [ ! -d ${piddir} ]; then
+                mkdir -m 755 -p ${piddir}
+                chown -R ${searchd_user}:${searchd_group} ${piddir}
+        fi
+        if [ ! -d ${searchd_logdir} ]; then
+                mkdir -m 755 -p ${searchd_logdir}
+                chown -R ${searchd_user}:${searchd_group} \
+                        ${searchd_logdir}
+        fi
+}
+
+case "${searchd_flags}" in
+        *--config\ *)
+        echo "Warning \$searchd_flags includes --config option." \
+                "Please use \$searchd_conffile instead."
+        ;;
+        *)
+        searchd_flags="--config ${searchd_conffile} ${searchd_flags}"
+        ;;
+esac
+
+run_rc_command "$1"

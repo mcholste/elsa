@@ -1,0 +1,83 @@
+#!/bin/sh
+#
+# Init file for searchd
+#
+# chkconfig: 2345 55 25
+#
+# description: searchd 
+#
+# USE "chkconfig --add searchd" to configure Sphinx searchd service
+#
+# by Vladimir Fedorkov Mar 1, 2006, info@astellar.com
+# public domain
+
+### BEGIN INIT INFO
+# Provides:          searchd for sphinx
+# Required-Start:    $syslog-ng $remote_fs mysql
+# Required-Stop:     $syslog-ng $remote_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: searchd daemon for sphinx search
+# Description:       Starts the Sphinx searchd daemon
+### END INIT INFO
+
+BASE_PATH=/usr/local/sphinx
+CONFIG_FILE=/usr/local/etc/sphinx.conf
+PID_FILE=/var/run/searchd.pid
+
+EXEC_PATH=$BASE_PATH/bin
+
+RETVAL=0
+prog="searchd"
+
+do_start() {
+	echo "Starting $prog"
+	#start-stop-daemon --start --exec $EXEC_PATH/$prog -- --config $CONFIG_FILE
+	$EXEC_PATH/$prog --config $CONFIG_FILE
+	RETVAL=$?
+	echo
+	return $RETVAL
+}
+
+do_stop() {
+	echo "Stopping $prog"
+	#start-stop-daemon --stop --exec $EXEC_PATH/$prog
+	if [ -e $PID_FILE ] ; then
+		kill -15 `cat $PID_FILE`
+		sleep 5
+		if [ -e $PID_FILE ] ; then
+		        kill -9 `cat $PID_FILE`
+		fi
+	fi
+	RETVAL=$?
+	return $RETVAL
+}
+
+case $* in
+
+restart)
+	do_stop
+	do_start
+	;;
+
+start)
+	do_start
+	;;
+
+stop)
+	do_stop
+	;;
+
+force-reload)
+	echo -n "Reload service $prog"
+	killproc -HUP $prog
+	;;
+
+*)
+	echo "usage: $0 {start|stop|restart}" >&2
+
+	exit 1
+	;;
+esac
+
+exit $RETVAL

@@ -1,0 +1,37 @@
+[
+        {
+        		"title": "Test Charts",
+                "charts": [
+                        {
+                                "title": "Test Data from Initial Load by Time",
+                                "queries": [
+                                        {
+                                                "label": "Count",
+                                                "query": "+seq"
+                                        }
+                                ],
+                                "type": "ColumnChart"
+                        },
+                        {
+                                "title": "Test Data from Initial Load by Host",
+                                "queries": [
+                                        {
+                                                "label": "Host",
+                                                "query": "+seq groupby:host"
+                                        }
+                                ],
+                                "type": "BarChart"
+                        },
+                        {
+                                "title": "Test Data from Initial Load by Class",
+                                "queries": [
+                                        {
+                                                "label": "Class",
+                                                "query": "+seq groupby:class"
+                                        }
+                                ],
+                                "type": "PieChart"
+                        }
+                ]
+        }
+]

@@ -1,0 +1,34 @@
+From Chris Wakelin:
+
+I'm running Ubuntu 10.04's (net-)snmpd on the ELSA node with
+
+SNMPDRUN=no
+TRAPDRUN=yes
+TRAPDOPTS='-p /var/run/snmptrapd.pid -m ALL -Ls6 -Ot'
+
+in /etc/default/snmpd
+
+(to log to Syslog Local6 with timestamps as integers to make matching
+the Uptime one easier, particularly as it appears to be wrong, 10x the
+size perhaps, in Sophos!)
+
+and the Sophos MIB copied to /usr/share/snmp/mibs
+
+I've got
+
+authCommunity log <"secret" community string>
+doNotRetainNotificationLogs yes
+
+in /etc/snmpd/snmptrapd.conf
+
+(Funnily enough, putting the Logging and Output options in the
+snmptrapd.conf produces slightly different output behaviour; this may be
+fixed in later versions of net-snmp)
+
+I've got an /etc/rsyslog.d/11-sophos-snmp.conf file containing
+local6.*                    @127.0.0.1 # forward to ELSA syslog-ng
+
+I've got an extension to the schema and patterndb.xml (attached):
+
+In practice, I don't think I can get all the fields in my schema out,
+just IP, hostname and notices for now.

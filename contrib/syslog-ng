@@ -1,0 +1,90 @@
+#!/bin/sh
+#
+# Init file for searchd
+#
+# chkconfig: 2345 55 25
+#
+# description: searchd 
+#
+# USE "chkconfig --add searchd" to configure Sphinx searchd service
+#
+# by Vladimir Fedorkov Mar 1, 2006, info@astellar.com
+# public domain
+### BEGIN INIT INFO
+# Provides: syslog
+# Required-Start: $local_fs $network $time $remote_fs
+# Required-Stop: $local_fs $network $time $remote_fs
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: Starting system logging daemon
+# Description: Starting syslog-NG, the next generation
+# syslog daemon.
+### END INIT INFO#
+
+BASE_PATH=/usr/local/syslog-ng
+EXEC_PATH=$BASE_PATH/sbin
+PID_FILE=$BASE_PATH/var/syslog-ng.pid
+
+RETVAL=0
+prog="syslog-ng"
+
+do_start() {
+	echo "Starting $prog"
+	$EXEC_PATH/$prog
+	RETVAL=$?
+	echo
+	return $RETVAL
+}
+
+do_stop() {
+	echo "Stopping $prog"
+	if [ -e $PID_FILE ] ; then
+		if [ ! -z "$(pgrep -f elsa.pl)" ]; then
+			kill -15 $(pgrep -f elsa.pl)
+		fi
+		sleep 5
+		# Make sure elsa.pl died
+		kill -15 $(pgrep -f elsa.pl)
+		if [ -e $PID_FILE ] ; then
+			kill -9 `cat $PID_FILE`
+		fi
+	fi
+	RETVAL=$?
+	echo
+	return $RETVAL
+}
+
+do_reload() {
+	echo "Reloading $prog"
+	if [ -e $PID_FILE ]; then
+		kill -HUP `cat $PID_FILE`
+	fi
+	RETVAL=$?
+	echo
+	return $RETVAL
+}
+
+case $* in
+reload)
+	do_reload
+	;;
+restart)
+	do_stop
+	do_start
+	;;
+start)
+	do_start
+	;;
+
+stop)
+	do_stop
+	;;
+
+*)
+	echo "usage: $0 {start|stop|restart}" >&2
+
+	exit 1
+	;;
+esac
+
+exit $RETVAL

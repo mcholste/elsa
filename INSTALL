@@ -1,0 +1,129 @@
+#!/bin/sh
+# Building Prerequisites:
+sudo apt-get install g++ gcc libpcre++-dev pkg-config libglib2.0-dev libdbi0-dev libssl-dev libcap-dev libnet1-dev apache2 libpam0g-dev libapache2-mod-auth-pam
+# Make sure that /usr/local/lib is included /etc/ld.so.conf by adding:
+echo “include /usr/local/lib” >> /etc/ld.so.conf
+# Make sure all new libraries are included in the LD_PATH
+sudo ldconfig
+
+# Add elsa user (disregard if you want to use an existing user)
+useradd -c "ELSA" -d /usr/local/elsa -r elsa -g root
+
+# Install MySQL
+# (For high performance, use the packages at http://www.percona.com/downloads/Percona-Server-5.5/Percona-Server-5.5.10-rc20.1/deb/lucid/x86_64/)
+sudo apt-get install mysql-client mysql-server libmysqlclient-dev
+
+# Install Sphinx
+wget http://sphinxsearch.com/files/sphinx-1.10-beta.tar.gz
+tar xzvf sphinx-1.10-beta.tar.gz
+cd sphinx-1.10-beta/
+./configure --enable-id64 && make && sudo make install && cd ..
+
+# Install Syslog-NG >= 3.1
+wget -O eventlog_0.2.12.tar.gz http://www.balabit.com/downloads/files?path=/syslog-ng/sources/3.2.2/source/eventlog_0.2.12.tar.gz
+tar xzvf eventlog_0.2.12.tar.gz && cd eventlog-0.2.12/
+./configure && make && sudo make install && cd ..
+
+wget -O syslog-ng_3.2.2.tar.gz http://www.balabit.com/downloads/files?path=/syslog-ng/sources/3.2.2/source/syslog-ng_3.2.2.tar.gz
+tar xzvf syslog-ng_3.2.2.tar.gz && cd syslog-ng-3.2.2/
+./configure --enable-ipv6 --enable-spoof-source --enable-ssl && make && sudo make install && cd ..
+
+# Get ELSA
+wget http://enterprise-log-search-and-archive.googlecode.com/files/elsa-0.1.1.tar.gz
+tar xzvf elsa-0.1.1.tar.gz
+sudo mv elsa /usr/local/ && cd /usr/local/elsa
+
+# Setup MySQL
+mysqladmin -uroot create syslog
+mysqladmin -uroot create syslog_data
+mysql -uroot syslog < node/conf/schema.sql
+mysqladmin -uroot create syslog_web
+mysql -uroot syslog_web < web/conf/meta_db_schema.mysql
+
+# Install Perl Modules
+sudo cpan App::cpanminus
+sudo sh contrib/elsa-logging-node-perl-modules-install.sh
+sudo sh contrib/elsa-web-frontend-perl-modules-install.sh
+
+# Set ELSA config
+# Create the log and tmp directories:
+mkdir log
+mkdir node/tmp
+mkdir node/tmp/locks
+# Create the directory lock file
+touch node/tmp/locks/directory
+# Change any config accordingly if you have custom destinations or need to tweak the size of anything.  Specifically:
+# email address and base URL of ELSA alerts under "email" at line 21
+# link_key can be anything you want--it generates the random hashes for hash authentication
+# cluster settings at line 31 if you are running the frontend on a different node than the backend
+# Edit peers if there are more than one backend node to have the right id numbers and IP addresses.
+# Edit the number of num_indexes setting if you expect to receive fewer than 833 logs/second.  Settings higher than 800 or untested. 
+# Edit the num_workers settings to be smaller if you have less than 4 CPU's
+# Edit the manager:server_id if there are more than one backend nodes.  Each node needs its own id.  It should match the "peers" above.
+# vi etc/elsa.conf
+
+# Setup Sphinx
+# Create data dir
+sudo mkdir /data
+sudo mkdir /data/sphinx
+sudo mkdir /data/sphinx/log
+sudo chown -R elsa /data
+# If you choose to use a different directory, you will need to edit the sphinx config template:
+cd /usr/local/elsa/node
+# Edit conf/sphinx.conf.template and replace any references to /data to your chosen location. Alternatively, you can symlink to /data and not do any editing.
+# vi conf/sphinx.conf.template
+# Write out the sphinx template
+cd node
+sudo perl create_sphinx_config.pl
+# Create the stub file for future stopwords
+touch /usr/local/etc/sphinx_stopwords.txt
+# Perform the initial index creation
+indexer --all
+# Start sphinx
+searchd --cpustats --iostats
+
+# Setup Syslog-NG
+cd /usr/local/elsa
+# Create data dirs:
+mkdir /data/elsa
+mkdir /data/elsa/log
+mkdir /data/elsa/tmp
+mkdir /data/elsa/tmp/buffers
+sudo mv /usr/local/etc/syslog-ng.conf /usr/local/etc/syslog-ng.conf.orig
+sudo cp etc/syslog-ng.conf /usr/local/etc/
+# Start syslog-ng in the foreground to make sure it starts ok:
+sudo syslog-ng -Fev
+# It should print this and wait:
+# Log pattern database reloaded; file='/usr/local/elsa/node/conf/patterndb.xml', version='3', pub_date='2009-11-04' 
+# Starting destination program; cmdline='/usr/local/elsa/node/indexer.pl' 
+# syslog-ng starting up; version='3.2.2' 
+# Initializing destination file writer; template='/data/elsa/log/internal.log', filename='/data/elsa/log/internal.log'
+# If it looks ok, go ahead and kill it with Ctrl+C and restart it as a daemon:
+syslog-ng
+
+# Start the agent
+sudo /usr/local/elsa/node/agent.pl
+# Make sure the agent starts up properly by watching log/node.log.  The system should now be receiving and indexing logs.
+
+# Setup Apache
+sudo cp etc/apache_site.conf /etc/apache2/sites-available/elsa.conf
+# Enable the site
+sudo ln -s /etc/apache2/sites-available/elsa.conf /etc/apache2/sites-enabled/elsa.conf
+# Enable modrewrite
+sudo ln -s /etc/apache2/mods-available/rewrite.load /etc/apache2/mods-enabled/rewrite.load
+sudo chmod 755 /usr/local/elsa/web/lib/Web.cgi
+touch log/web.log
+# Fix PAM for Apache
+sudo chown www-data log/web.log
+sudo ln -s /etc/pam.d/apache2 /etc/pam.d/httpd
+# Allow both elsa user and apache to write to web.log
+sudo chmod 666 /usr/local/elsa/log/web.log
+# Apply apache changes
+sudo /etc/init.d/apache2 restart
+
+# Start Janus Middleware
+sudo /usr/local/elsa/web/janus.pl
+
+# By default, authentication will use local auth, meaning that any account you can ssh in will work.  Accounts that are in the groups "admin" or "root" will be admins.  You can add other groups using the "admin_groups" config aray in elsa.conf.
+# To log in, you will need to add a static host entry to call the local machine "elsa."  Alternatively, you can change the apache elsa.conf to use a different VirtualHost which is either the IP of the machine or the actual DNS name of the machine.
+sudo echo "127.0.0.1 elsa" >> /etc/hosts

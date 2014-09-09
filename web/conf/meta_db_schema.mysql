@@ -1,0 +1,161 @@
+CREATE TABLE users (
+	uid int unsigned NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	username varchar(255) NOT NULL,
+	password varchar(255),
+	email varchar(255),
+	UNIQUE KEY (username)
+) ENGINE=InnoDB;
+
+CREATE TABLE groups (
+	gid int UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	groupname varchar(255) NOT NULL,
+	UNIQUE KEY (groupname)
+) ENGINE=InnoDB;
+
+CREATE TABLE users_groups_map (
+	uid int UNSIGNED NOT NULL,
+	gid int UNSIGNED NOT NULL,
+	PRIMARY KEY (uid, gid),
+	FOREIGN KEY (uid) REFERENCES users (uid)  ON UPDATE CASCADE,
+	FOREIGN KEY (gid) REFERENCES groups (gid)  ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE permissions (
+	gid int UNSIGNED NOT NULL,
+	attr varchar(255) NOT NULL,
+	attr_id varchar(255) NOT NULL,
+	PRIMARY KEY (gid,attr,attr_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE filters (
+	gid int UNSIGNED NOT NULL,
+	filter varchar(255) NOT NULL,
+	PRIMARY KEY (gid,filter),
+	FOREIGN KEY (gid) REFERENCES groups (gid)
+) ENGINE=InnoDB;
+
+CREATE TABLE query_log (
+	qid int UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	uid int UNSIGNED NOT NULL,
+	query varchar(8000) NOT NULL,
+	system TINYINT UNSIGNED NOT NULL DEFAULT 0,
+	timestamp timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	num_results int,
+	milliseconds int UNSIGNED,
+	archive BOOLEAN NOT NULL DEFAULT 0,
+	pid SMALLINT UNSIGNED,
+	FOREIGN KEY (uid) REFERENCES users (uid) ON UPDATE CASCADE,
+	KEY (timestamp),
+	KEY (archive)
+) ENGINE=InnoDB;
+
+CREATE TABLE query_schedule (
+	id INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	uid INT UNSIGNED NOT NULL,
+	query VARCHAR(8000) NOT NULL,
+	frequency VARCHAR(21),
+	start INT UNSIGNED NOT NULL DEFAULT 0,
+	end INT UNSIGNED NOT NULL DEFAULT 0,
+	enabled BOOLEAN NOT NULL DEFAULT 1,
+	connector VARCHAR(255),
+	params VARCHAR(8000),
+	last_alert TIMESTAMP,
+	alert_threshold INT UNSIGNED NOT NULL DEFAULT 0,
+	FOREIGN KEY (uid) REFERENCES users (uid) ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE saved_results (
+	qid INT UNSIGNED NOT NULL PRIMARY KEY,
+	comments VARCHAR(8000),
+	FOREIGN KEY (qid) REFERENCES query_log (qid) ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE saved_results_data (
+	qid INT UNSIGNED NOT NULL,
+	data LONGTEXT NOT NULL,
+	FOREIGN KEY (qid) REFERENCES saved_results (qid) ON UPDATE CASCADE ON DELETE CASCADE
+) ENGINE=InnoDB;
+	
+
+INSERT INTO users (uid, username) VALUES(1, "system");
+INSERT INTO users (uid, username) VALUES(2, "user");
+INSERT INTO groups (gid, groupname) VALUES(1, "system");
+INSERT INTO users_groups_map (uid, gid) VALUES((SELECT uid FROM users WHERE username="system"), (SELECT gid FROM groups WHERE groupname="system"));
+
+CREATE TABLE schedule_bookmark (
+	last_run TIMESTAMP NOT NULL PRIMARY KEY
+) ENGINE=InnoDB;
+
+CREATE TABLE dashboards (
+	id INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	uid INT UNSIGNED NOT NULL,
+	title VARCHAR(255),
+	alias VARCHAR(255),
+	auth_required TINYINT UNSIGNED NOT NULL DEFAULT 1,
+	FOREIGN KEY (uid) REFERENCES users (uid),
+	UNIQUE KEY (uid, alias)
+) ENGINE=InnoDB;
+CREATE TABLE dashboard_auth (
+	dashboard_id INT UNSIGNED NOT NULL,
+	gid INT UNSIGNED NOT NULL,
+	PRIMARY KEY (dashboard_id, gid),
+	FOREIGN KEY (dashboard_id) REFERENCES dashboards (id) ON DELETE CASCADE ON UPDATE CASCADE,
+	FOREIGN KEY (gid) REFERENCES groups (gid) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB;
+CREATE TABLE charts (
+	id INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	uid INT UNSIGNED NOT NULL,
+	type VARCHAR(255),
+	options TEXT,
+	FOREIGN KEY (uid) REFERENCES users (uid) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB;
+CREATE TABLE chart_queries (
+	id INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	chart_id INT UNSIGNED NOT NULL,
+	label VARCHAR(255),
+	query VARCHAR(8000) NOT NULL,
+	FOREIGN KEY (chart_id) REFERENCES charts (id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB;
+CREATE TABLE dashboards_charts_map (
+	dashboard_id INT UNSIGNED NOT NULL,
+	chart_id INT UNSIGNED NOT NULL,
+	x TINYINT UNSIGNED NOT NULL DEFAULT 0,
+	y TINYINT UNSIGNED NOT NULL DEFAULT 0,
+	PRIMARY KEY (dashboard_id, chart_id),
+	FOREIGN KEY (dashboard_id) REFERENCES dashboards (id) ON DELETE CASCADE ON UPDATE CASCADE,
+	FOREIGN KEY (chart_id) REFERENCES charts (id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB;
+CREATE OR REPLACE VIEW v_dashboards AS
+SELECT dashboards.id AS dashboard_id, dashboards.uid AS uid, dashboards.alias, username, dashboards.title AS dashboard_title,
+	charts.id AS chart_id, charts.type AS chart_type, chart_queries.id AS query_id, charts.options AS chart_options,
+	chart_queries.label AS label, chart_queries.query AS query, dashboards_charts_map.x AS x, dashboards_charts_map.y AS y,
+	dashboards.auth_required, dashboard_auth.gid, groups.groupname
+FROM dashboards
+LEFT JOIN dashboards_charts_map ON (dashboards.id=dashboards_charts_map.dashboard_id)
+LEFT JOIN charts ON (charts.id=dashboards_charts_map.chart_id)
+LEFT JOIN chart_queries ON (charts.id=chart_queries.chart_id)
+JOIN users ON (dashboards.uid=users.uid)
+LEFT JOIN dashboard_auth ON (dashboards.id=dashboard_auth.dashboard_id)
+LEFT JOIN groups ON (dashboard_auth.gid=groups.gid);
+
+CREATE TABLE preferences (
+	id INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	uid INT UNSIGNED NOT NULL,
+	type VARCHAR(255),
+	name VARCHAR(255),
+	value TEXT,
+	UNIQUE KEY (uid, type, name),
+	FOREIGN KEY (uid) REFERENCES users (uid) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE foreign_queries (
+	qid INT UNSIGNED NOT NULL,
+	peer VARCHAR(255) NOT NULL,
+	foreign_qid INT UNSIGNED NOT NULL,
+	completed INT UNSIGNED,
+	PRIMARY KEY (qid, peer, foreign_qid),
+	FOREIGN KEY (qid) REFERENCES query_log (qid) ON DELETE CASCADE ON UPDATE CASCADE,
+	KEY (foreign_qid),
+	KEY(completed)
+) ENGINE=InnoDB;
+	

@@ -1,0 +1,14 @@
+* Install the perl-SNMP package (exact name depends on your distro)
+* Install the other Perl packages:
+ sudo cpanm Unix::PID 
+* Copy the check_all_required_procs.pl to a new directory if you need to make custom edits for file locations
+* Edit it if necessary
+* Add this to your /etc/snmp/snmpd.conf (change directory if needed): 
+  perl do '/usr/local/elsa/contrib/monitoring/check_all_required_procs.pl'
+* Restart snmpd
+
+You should now be able to execute snmp checks like this:
+Pids: 
+snmpget -v2c -c public elsa .1.3.6.1.4.2010
+Overall log reception: 
+snmpget -v2c -c public elsa .1.3.6.1.4.2011

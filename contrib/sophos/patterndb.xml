@@ -1,0 +1,24 @@
+<ruleset name="sophos" id='10001'>
+	<pattern>snmptrapd</pattern>
+	<rules>
+		<rule provider="ELSA" class='10001' id='10001'>
+			<patterns>
+				<pattern>@ESTRING:: @@ESTRING:: @@ESTRING:s0: [@@IPv4:i0:] (via UDP: [@@ESTRING::]) TRAP, SNMP v1, community @@ESTRING:: Enterprise Specific Trap (@@ESTRING::) Uptime: @@ESTRING::SOPHOS-SAV-MIB::@@ESTRING:s4: = STRING: "@@ESTRING:s5:"#011@</pattern>
+			</patterns>
+			<examples>
+				<example>
+					<test_message program="snmptrapd">2012-03-12 22:04:09 myhost.rdg.ac.uk [1.2.3.4] (via UDP: [1.2.3.4]:59734->[4.3.2.1]) TRAP, SNMP v1, community ITSSophosSNMP#012#011SOPHOS-SAV-MIB::traps Enterprise Specific Trap (SOPHOS-SAV-MIB::sysTrapVirus) Uptime: 257405424#012#011SOPHOS-SAV-MIB::sysMsgVirus = STRING: "File \"C:\\Users\\Chris\\eicar.com\" belongs to virus/spyware 'EICAR-AV-Test'.#015#012"#011SOPHOS-SAV-MIB::savVersion.2 = STRING: "9.7.7"</test_message>
+					<test_values>
+						<test_value name="i0">1.2.3.4</test_value>
+						<test_value name="s0">myhost.rdg.ac.uk</test_value>
+						<test_value name="s1">-</test_value>
+						<test_value name="s2">-</test_value>
+						<test_value name="s3">-</test_value>
+						<test_value name="s4">sysMsgVirus</test_value>
+						<test_value name="s5">File "C:\Users\Chris\eicar.com" belongs to virus/spyware 'EICAR-AV-Test'.#015#012"</test_value>
+					</test_values>
+				</example>
+			</examples>
+		</rule>
+	</rules>
+</ruleset>
