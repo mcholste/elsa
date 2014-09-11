@@ -315,7 +315,7 @@ get_elsa_from_github(){
 	# Get the latest code from Github
 	cd $BASE_DIR
 	
-	if [\! -d elsa ]; then
+	if [ \! -d elsa ]; then
 		git clone $ELSA_GIT_REPO
 	fi
 	
