@@ -9,6 +9,8 @@
 export PATH=$PATH:/usr/local/bin
 
 # CONFIG VARIABLES
+BRANCH_NAME="1.5"
+ELSA_GIT_REPO="https://github.com/mcholste/elsa.git"
 BASE_DIR="/usr/local"
 DATA_DIR="/data"
 TMP_DIR="/tmp"
@@ -304,6 +306,37 @@ set_date(){
 	ntpdate time.nist.gov
 	# we don't care about the error code, and sometimes ntpd blocks this
 	return 0
+}
+
+get_elsa_from_github(){
+	# Find our current md5
+	BEFORE_MD5=$($MD5SUM $SELF | cut -f1 -d\ )
+	echo "Current MD5: $BEFORE_MD5"
+	# Get the latest code from Github
+	cd $BASE_DIR
+	
+	if [\! -d elsa ]; then
+		git clone $ELSA_GIT_REPO
+	fi
+	
+	cd elsa && git fetch && git checkout $BRANCH_NAME && 
+	mkdir -p "$BASE_DIR/elsa/node/tmp/locks" && 
+	touch "$BASE_DIR/elsa/node/tmp/locks/directory"
+	touch "$BASE_DIR/elsa/node/tmp/locks/query"
+	UPDATE_OK=$?
+			
+	DOWNLOADED="$BASE_DIR/elsa/contrib/$THIS_FILE"
+	AFTER_MD5=$($MD5SUM $DOWNLOADED | cut -f1 -d\ )
+	echo "Latest MD5: $AFTER_MD5"
+	
+	if [ "$BEFORE_MD5" != "$AFTER_MD5" ] && [ "$USE_LOCAL_INSTALL" != "1" ]; then
+		echo "Restarting with updated install.sh..."
+		echo "$SHELL $DOWNLOADED $INSTALL $OP"
+		$SHELL $DOWNLOADED $INSTALL $OP;
+		exit;
+	else
+		return $UPDATE_OK
+	fi
 }
 
 get_elsa(){
@@ -781,6 +814,11 @@ set_syslogng_conf(){
 	cp $BASE_DIR/elsa/node/conf/patterndb.xml /etc/elsa/patterns.d/
 	if [ \! -f /etc/elsa/patterns.d/local_patterndb.xml ]; then
 		echo "<patterndb version='3'></patterndb>" > /etc/elsa/patterns.d/local_patterndb.xml
+	fi
+	
+	# Copy any individual patterns
+	if [ -d $BASE_DIR/elsa/node/conf/patterns ]; then
+		cp $BASE_DIR/elsa/node/conf/patterns/* /etc/elsa/patterns.d/
 	fi
 	
 	# Merge stock patterndb.xml with elsa_local_patterndb.xml
@@ -1354,11 +1392,11 @@ validate_config(){
 
 if [ "$INSTALL" = "node" ]; then
 	if [ "$OP" = "ALL" ]; then
-		for FUNCTION in "check_node_installed" $DISTRO"_get_node_packages" "set_date" "check_svn_proxy" "get_elsa" "get_cpanm" "build_node_perl" "mk_node_dirs" "build_sphinx" "build_syslogng" "set_syslogng_conf" "set_node_mysql" "init_elsa" "test_elsa" "set_logrotate" "validate_config" ; do
+		for FUNCTION in "check_node_installed" $DISTRO"_get_node_packages" "set_date" "check_svn_proxy" "get_elsa_from_github" "get_cpanm" "build_node_perl" "mk_node_dirs" "build_sphinx" "build_syslogng" "set_syslogng_conf" "set_node_mysql" "init_elsa" "test_elsa" "set_logrotate" "validate_config" ; do
 			exec_func $FUNCTION
 		done
 	elif [ "$OP" = "update" ]; then
-		for FUNCTION in $DISTRO"_get_node_packages" "set_date" "check_svn_proxy" "get_elsa" "build_node_perl" "mk_node_dirs" "update_node_mysql" "set_syslogng_conf" "validate_config" "restart_elsa"; do
+		for FUNCTION in $DISTRO"_get_node_packages" "set_date" "check_svn_proxy" "get_elsa_from_github" "build_node_perl" "mk_node_dirs" "update_node_mysql" "set_syslogng_conf" "validate_config" "restart_elsa"; do
 			exec_func $FUNCTION
 		done
 	else
@@ -1366,11 +1404,11 @@ if [ "$INSTALL" = "node" ]; then
 	fi
 elif [ "$INSTALL" = "web" ]; then
 	if [ "$OP" = "ALL" ]; then
-		for FUNCTION in "check_web_installed" $DISTRO"_get_web_packages" "set_date" "check_svn_proxy" "get_elsa" "get_cpanm" "build_web_perl" "set_web_mysql" "mk_web_dirs" $DISTRO"_set_apache" "set_cron" "set_logrotate" "set_version" "validate_config" ; do
+		for FUNCTION in "check_web_installed" $DISTRO"_get_web_packages" "set_date" "check_svn_proxy" "get_elsa_from_github" "get_cpanm" "build_web_perl" "set_web_mysql" "mk_web_dirs" $DISTRO"_set_apache" "set_cron" "set_logrotate" "set_version" "validate_config" ; do
 			exec_func $FUNCTION
 		done
 	elif [ "$OP" = "update" ]; then
-		for FUNCTION in $DISTRO"_get_web_packages" "set_date" "check_svn_proxy" "get_elsa" "build_web_perl" "update_web_mysql" "set_version" "validate_config" $DISTRO"_set_apache"; do
+		for FUNCTION in $DISTRO"_get_web_packages" "set_date" "check_svn_proxy" "get_elsa_from_github" "build_web_perl" "update_web_mysql" "set_version" "validate_config" $DISTRO"_set_apache"; do
 			exec_func $FUNCTION
 		done
 	else
