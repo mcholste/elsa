@@ -1063,7 +1063,7 @@ YAHOO.ELSA.Results = function(){
 			
 			a.setAttribute('href', '#');//Will jump to the top of page. Could be annoying
 			a.setAttribute('class', 'value');
-			a.innerHTML = oSelf.highlightText(escapeHTML(p_oData), '<span class=\'highlight\'>%s</span>');
+			a.innerHTML = oSelf.highlightText(p_oData, '<span class=\'highlight\'>%s</span>');
 			
 			oDiv.appendChild(a);
 			
@@ -1083,7 +1083,7 @@ YAHOO.ELSA.Results = function(){
 	}
 	
 	this.formatAddHighlights = function(p_elCell, oRecord, oColumn, p_oData){
-		p_elCell.innerHTML = oSelf.highlightText(escapeHTML(p_oData), '<span class=\'highlight\'>%s</span>');
+		p_elCell.innerHTML = oSelf.highlightText(p_oData, '<span class=\'highlight\'>%s</span>');
 	}
 	
 	this.formatDate = function(p_elCell, oRecord, oColumn, p_oData)
@@ -1260,7 +1260,7 @@ YAHOO.ELSA.Results = function(){
 			{ key:'class', parser:YAHOO.util.DataSourceBase.parseString },
 			{ key:'program', parser:YAHOO.util.DataSourceBase.parseString },
 			{ key:'_fields' },
-			{ key:'msg', parser: escapeHTML }
+			{ key:'msg' }
 		];
 		
 		var oColumns = [
@@ -1388,7 +1388,7 @@ YAHOO.ELSA.Results = function(){
 		}
 		
 		if (bHasClassNone){
-			aFields.push({ key:'msg', parser:escapeHTML });
+			aFields.push({ key:'msg' });
 			aColumns.push({ key:'msg', label:'Message', sortable:true, resizeable:true, formatter:this.formatAddHighlights });
 		}
 		
@@ -1629,7 +1629,7 @@ YAHOO.ELSA.Results = function(){
 			{ key:'class', parser:YAHOO.util.DataSourceBase.parseString },
 			{ key:'program', parser:YAHOO.util.DataSourceBase.parseString },
 			{ key:'_fields' },
-			{ key:'msg', parser: escapeHTML }
+			{ key:'msg' }
 		];
 		
 		var oColumns = [
@@ -1807,7 +1807,7 @@ YAHOO.ELSA.Results.LiveTail = function(p_oQuery){
 				
 				for (var i in oTempWorkingSet){
 					var fieldHash = oTempWorkingSet[i];
-					fieldHash.value_with_markup = escapeHTML(fieldHash.value);
+					fieldHash.value_with_markup = fieldHash.value;
 					
 					var oHighlightDiv = document.createElement('span');
 					
@@ -1876,7 +1876,7 @@ YAHOO.ELSA.Results.Given = function(p_oResults){
 			
 			for (var i in oTempWorkingSet){
 				var fieldHash = oTempWorkingSet[i];
-				fieldHash.value_with_markup = escapeHTML(fieldHash.value);
+				fieldHash.value_with_markup = fieldHash.value;
 				//logger.log('fieldHash', fieldHash);
 				
 				// create field text
