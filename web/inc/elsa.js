@@ -1016,6 +1016,7 @@ YAHOO.ELSA.Results = function(){
 	}
 	
 	this.highlightText = function(p_sText, p_sReplacementTemplate){
+		p_sText = escapeHTML(p_sText);
 		if (typeof(oSelf.results.highlights) != 'undefined'){
 			for (var sHighlight in this.results.highlights){
 				sHighlight = sHighlight.replace(/^["']*/, '');
@@ -1024,7 +1025,7 @@ YAHOO.ELSA.Results = function(){
 				re = new RegExp(sHighlight, 'i');
 				var aMatches = p_sText.match(re);
 				if (aMatches != null){
-					var sReplacement = sprintf(p_sReplacementTemplate, escapeHTML(aMatches[1]));
+					var sReplacement = sprintf(p_sReplacementTemplate, aMatches[1]);
 					//var sReplacement = '<span class=\'highlight\'>' + escapeHTML(aMatches[1]) + '</span>';
 					re = new RegExp(aMatches[1], 'i');
 					p_sText = p_sText.replace(re, sReplacement);
