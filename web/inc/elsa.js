@@ -1200,7 +1200,7 @@ YAHOO.ELSA.Results = function(){
 						//oSelf.tab.set('label', sTabLabel);
 						
 						oSelf.tab.get('labelEl').innerHTML = 
-							'<table id="' + oSelf.id + '" style="padding: 0px;"><tr><td class="yui-skin-sam">' + sTabLabel + '</td>' +
+							'<table id="' + oSelf.id + '" style="padding: 0px;"><tr><td class="yui-skin-sam">' + escapeHTML(sTabLabel) + '</td>' +
 							'<td id="close_box_' + oSelf.id + '" class="yui-skin-sam close"></td></tr></table>';
 						var oElClose = new YAHOO.util.Element(YAHOO.util.Dom.get('close_box_' + oSelf.id));
 						oElClose.removeClass('hiddenElement');
@@ -2337,7 +2337,7 @@ YAHOO.ELSA.Results.Tabbed = function(p_oTabView, p_sQueryString, p_sTabLabel){
 		this.tabView.addTab(this.tab);
 		this.tabId = this.tabView.getTabIndex(this.tab);
 		this.tab.get('labelEl').innerHTML = 
-			'<table id="' + this.id + '" style="padding: 0px;"><tr><td class="yui-skin-sam">' + p_sTabLabel + '</td>' +
+			'<table id="' + this.id + '" style="padding: 0px;"><tr><td class="yui-skin-sam">' + escapeHTML(p_sTabLabel) + '</td>' +
 			'<td id="close_box_' + this.id + '" class="yui-skin-sam loading"></td></tr></table>';
 		var oElClose = new YAHOO.util.Element(YAHOO.util.Dom.get('close_box_' + this.id));
 		oElClose.removeClass('hiddenElement');
