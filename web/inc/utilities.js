@@ -126,7 +126,7 @@ function escapeHTML(text){
 			return '';
 		}
 	}
-	return text.split("&").join("&amp;").split( "<").join("&lt;").split(">").join("&gt;").split('"').join("&quot;");
+	return text.split("&").join("&amp;").split("<").join("&lt;").split(">").join("&gt;").split('"').join("&quot;").split("'").join("&#x27;").split("/").join("&#x2F;");
 }
 
 /**

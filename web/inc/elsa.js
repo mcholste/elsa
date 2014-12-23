@@ -1016,6 +1016,7 @@ YAHOO.ELSA.Results = function(){
 	}
 	
 	this.highlightText = function(p_sText, p_sReplacementTemplate){
+		p_sText = escapeHTML(p_sText);
 		if (typeof(oSelf.results.highlights) != 'undefined'){
 			for (var sHighlight in this.results.highlights){
 				sHighlight = sHighlight.replace(/^["']*/, '');
@@ -1024,7 +1025,7 @@ YAHOO.ELSA.Results = function(){
 				re = new RegExp(sHighlight, 'i');
 				var aMatches = p_sText.match(re);
 				if (aMatches != null){
-					var sReplacement = sprintf(p_sReplacementTemplate, escapeHTML(aMatches[1]));
+					var sReplacement = sprintf(p_sReplacementTemplate, aMatches[1]);
 					//var sReplacement = '<span class=\'highlight\'>' + escapeHTML(aMatches[1]) + '</span>';
 					re = new RegExp(aMatches[1], 'i');
 					p_sText = p_sText.replace(re, sReplacement);
@@ -1062,7 +1063,7 @@ YAHOO.ELSA.Results = function(){
 			
 			a.setAttribute('href', '#');//Will jump to the top of page. Could be annoying
 			a.setAttribute('class', 'value');
-			a.innerHTML = oSelf.highlightText(escapeHTML(p_oData), '<span class=\'highlight\'>%s</span>');
+			a.innerHTML = oSelf.highlightText(p_oData, '<span class=\'highlight\'>%s</span>');
 			
 			oDiv.appendChild(a);
 			
@@ -1082,7 +1083,7 @@ YAHOO.ELSA.Results = function(){
 	}
 	
 	this.formatAddHighlights = function(p_elCell, oRecord, oColumn, p_oData){
-		p_elCell.innerHTML = oSelf.highlightText(escapeHTML(p_oData), '<span class=\'highlight\'>%s</span>');
+		p_elCell.innerHTML = oSelf.highlightText(p_oData, '<span class=\'highlight\'>%s</span>');
 	}
 	
 	this.formatDate = function(p_elCell, oRecord, oColumn, p_oData)
@@ -1199,7 +1200,7 @@ YAHOO.ELSA.Results = function(){
 						//oSelf.tab.set('label', sTabLabel);
 						
 						oSelf.tab.get('labelEl').innerHTML = 
-							'<table id="' + oSelf.id + '" style="padding: 0px;"><tr><td class="yui-skin-sam">' + sTabLabel + '</td>' +
+							'<table id="' + oSelf.id + '" style="padding: 0px;"><tr><td class="yui-skin-sam">' + escapeHTML(sTabLabel) + '</td>' +
 							'<td id="close_box_' + oSelf.id + '" class="yui-skin-sam close"></td></tr></table>';
 						var oElClose = new YAHOO.util.Element(YAHOO.util.Dom.get('close_box_' + oSelf.id));
 						oElClose.removeClass('hiddenElement');
@@ -1259,7 +1260,7 @@ YAHOO.ELSA.Results = function(){
 			{ key:'class', parser:YAHOO.util.DataSourceBase.parseString },
 			{ key:'program', parser:YAHOO.util.DataSourceBase.parseString },
 			{ key:'_fields' },
-			{ key:'msg', parser: escapeHTML }
+			{ key:'msg' }
 		];
 		
 		var oColumns = [
@@ -1387,7 +1388,7 @@ YAHOO.ELSA.Results = function(){
 		}
 		
 		if (bHasClassNone){
-			aFields.push({ key:'msg', parser:escapeHTML });
+			aFields.push({ key:'msg' });
 			aColumns.push({ key:'msg', label:'Message', sortable:true, resizeable:true, formatter:this.formatAddHighlights });
 		}
 		
@@ -1628,7 +1629,7 @@ YAHOO.ELSA.Results = function(){
 			{ key:'class', parser:YAHOO.util.DataSourceBase.parseString },
 			{ key:'program', parser:YAHOO.util.DataSourceBase.parseString },
 			{ key:'_fields' },
-			{ key:'msg', parser: escapeHTML }
+			{ key:'msg' }
 		];
 		
 		var oColumns = [
@@ -1806,7 +1807,7 @@ YAHOO.ELSA.Results.LiveTail = function(p_oQuery){
 				
 				for (var i in oTempWorkingSet){
 					var fieldHash = oTempWorkingSet[i];
-					fieldHash.value_with_markup = escapeHTML(fieldHash.value);
+					fieldHash.value_with_markup = fieldHash.value;
 					
 					var oHighlightDiv = document.createElement('span');
 					
@@ -1875,7 +1876,7 @@ YAHOO.ELSA.Results.Given = function(p_oResults){
 			
 			for (var i in oTempWorkingSet){
 				var fieldHash = oTempWorkingSet[i];
-				fieldHash.value_with_markup = escapeHTML(fieldHash.value);
+				fieldHash.value_with_markup = fieldHash.value;
 				//logger.log('fieldHash', fieldHash);
 				
 				// create field text
@@ -2336,7 +2337,7 @@ YAHOO.ELSA.Results.Tabbed = function(p_oTabView, p_sQueryString, p_sTabLabel){
 		this.tabView.addTab(this.tab);
 		this.tabId = this.tabView.getTabIndex(this.tab);
 		this.tab.get('labelEl').innerHTML = 
-			'<table id="' + this.id + '" style="padding: 0px;"><tr><td class="yui-skin-sam">' + p_sTabLabel + '</td>' +
+			'<table id="' + this.id + '" style="padding: 0px;"><tr><td class="yui-skin-sam">' + escapeHTML(p_sTabLabel) + '</td>' +
 			'<td id="close_box_' + this.id + '" class="yui-skin-sam loading"></td></tr></table>';
 		var oElClose = new YAHOO.util.Element(YAHOO.util.Dom.get('close_box_' + this.id));
 		oElClose.removeClass('hiddenElement');
