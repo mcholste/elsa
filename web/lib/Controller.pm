@@ -1904,6 +1904,7 @@ sub local_query_preparsed {
 sub get_log_info {
 	my ($self, $args, $cb) = @_;
 	my $user = $args->{user};
+	$args->{q} =~ s/ /+/g;
 	
 	my $decode;
 	eval {
