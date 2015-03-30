@@ -9,7 +9,7 @@
 export PATH=$PATH:/usr/local/bin
 
 # CONFIG VARIABLES
-BRANCH_NAME="1.5"
+BRANCH_NAME="master"
 ELSA_GIT_REPO="https://github.com/mcholste/elsa.git"
 BASE_DIR="/usr/local"
 DATA_DIR="/data"
