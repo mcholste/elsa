@@ -150,7 +150,7 @@ centos_get_node_packages(){
 		yum -yq install mysql-server mysql-libs mysql-devel
 	fi
 	
-	yum -yq install flex bison ntpdate perl perl-devel curl make subversion gcc gcc-c++ pkg-config pkgconfig pcre-devel libcap-devel libnet-devel openssl-devel libopenssl-devel glib2-devel perl-Module-Build perl-Module-Install perl-CPAN perl-Test-Simple perl-ExtUtils-MakeMaker
+	yum -yq install git flex bison ntpdate perl perl-devel curl make subversion gcc gcc-c++ pkg-config pkgconfig pcre-devel libcap-devel libnet-devel openssl-devel libopenssl-devel glib2-devel perl-Module-Build perl-Module-Install perl-CPAN perl-Test-Simple perl-ExtUtils-MakeMaker
 	
 	return $?
 }
@@ -166,7 +166,7 @@ suse_get_node_packages(){
 	if [ "$USE_LOCAL_MYSQL_PACKAGES" = 0 ]; then
 		zypper -qn install mysql-community-server libmysqlclient-devel
 	fi
-	zypper -qn install ntp perl curl make subversion gcc gcc-c++ pkg-config pcre-devel libcap-devel $LIBNET_PKG libopenssl-devel glib2-devel pam-devel perl-Module-Build
+	zypper -qn install git ntp perl curl make subversion gcc gcc-c++ pkg-config pcre-devel libcap-devel $LIBNET_PKG libopenssl-devel glib2-devel pam-devel perl-Module-Build
 	return $?
 }
 
@@ -180,7 +180,7 @@ ubuntu_get_node_packages(){
 	fi
 	
 	# Install required packages
-	apt-get -qy install curl subversion gcc g++ pkg-config libglib2.0-dev libpcre3-dev libcap-dev libnet1-dev libssl-dev make libmodule-build-perl &&
+	apt-get -qy install git curl subversion gcc g++ pkg-config libglib2.0-dev libpcre3-dev libcap-dev libnet1-dev libssl-dev make libmodule-build-perl &&
 	
 	# Make debconf interactive again
 	echo "debconf debconf/frontend select readline" | debconf-set-selections
@@ -921,7 +921,7 @@ suse_get_web_packages(){
 	# Install required packages
 	zypper -n update
 	if [ "$USE_LOCAL_MYSQL_PACKAGES" = 0 ]; then
-		zypper -qn install mysql-community-server-client libmysqlclient-devel 
+		zypper -qn install git mysql-community-server-client libmysqlclient-devel 
 	fi
 	zypper -qn install curl subversion make gcc gcc-c++ apache2-prefork apache2-mod_perl apache2-mod_perl-devel libexpat-devel perl-Module-Build krb5-devel
 	return $?
@@ -937,7 +937,7 @@ ubuntu_get_web_packages(){
 	fi
 	
 	# Install required packages
-	apt-get -qy install curl subversion gcc g++ apache2-mpm-prefork libapache2-mod-perl2 libpam0g-dev make libgeoip-dev libgeo-ip-perl libexpat1-dev libmodule-build-perl libauthen-pam-perl libkrb5-dev &&
+	apt-get -qy install git curl subversion gcc g++ apache2-mpm-prefork libapache2-mod-perl2 libpam0g-dev make libgeoip-dev libgeo-ip-perl libexpat1-dev libmodule-build-perl libauthen-pam-perl libkrb5-dev &&
 	
 	# Make debconf interactive again
 	echo "debconf debconf/frontend select readline" | debconf-set-selections
@@ -949,7 +949,7 @@ centos_get_web_packages(){
 	if [ "$USE_LOCAL_MYSQL_PACKAGES" = 0 ]; then
 		yum -yq install mysql mysql-libs mysql-devel
 	fi
-	yum -yq install curl subversion make gcc gcc-c++ httpd mod_perl pam-devel setools-console expat-devel perl-Module-Build policycoreutils-python krb5-devel perl-Module-Install perl-libwww-perl perl-CPAN perl-Test-Simple perl-ExtUtils-MakeMaker
+	yum -yq install git curl subversion make gcc gcc-c++ httpd mod_perl pam-devel setools-console expat-devel perl-Module-Build policycoreutils-python krb5-devel perl-Module-Install perl-libwww-perl perl-CPAN perl-Test-Simple perl-ExtUtils-MakeMaker
 	return $?
 }
 
