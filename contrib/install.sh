@@ -1231,9 +1231,13 @@ ubuntu_set_apache(){
 	
 	# Enable the site
 	a2enmod perl &&
-	a2ensite elsa &&
-	a2dissite default &&
 	a2enmod rewrite &&
+	a2ensite elsa
+	
+	# Try to disable default sites, if applicable.
+	a2dissite default
+	a2dissite 000-default
+	
 	chown -R $WEB_USER "$DATA_DIR/elsa/log"
 	
 	# Ensure that Apache has the right prefork settings
