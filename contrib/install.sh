@@ -1226,7 +1226,7 @@ ubuntu_set_apache(){
 	if [ "$USE_LOCAL_APACHE_CONF" = "1" ]; then
 		echo "Not changing apache.conf, using local version"
 	else
-		cat "$BASE_DIR/elsa/web/conf/apache_site.conf" | sed -e "s|\/usr\/local|$BASE_DIR|g" | sed -e "s|\/data|$DATA_DIR|g" > /etc/apache2/sites-available/elsa
+		cat "$BASE_DIR/elsa/web/conf/apache_site.conf" | sed -e "s|\/usr\/local|$BASE_DIR|g" | sed -e "s|\/data|$DATA_DIR|g" > /etc/apache2/sites-available/elsa.conf
 	fi
 	
 	# Enable the site
