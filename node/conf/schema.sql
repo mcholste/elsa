@@ -83,7 +83,7 @@ CREATE TABLE fields (
 	field_type ENUM("string", "int") NOT NULL,
 	pattern_type ENUM("NONE", "QSTRING", "ESTRING", "STRING", "DOUBLE", "NUMBER", "IPv4", "PCRE-IPv4") NOT NULL,
 	input_validation VARCHAR(255),
-	UNIQUE KEY (field, field_type)
+	UNIQUE KEY (field)
 ) ENGINE=InnoDB;
 
 INSERT INTO fields (field, field_type, pattern_type) VALUES ("timestamp", "int", "NONE");
