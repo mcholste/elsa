@@ -490,7 +490,7 @@ sub _get_match_str {
 	$chars_indexed = join('', keys %$chars_indexed);
 	# Dash in the middle of $chars_indexed string is causing regex problems on new Perls (ie. Ubuntu 14.04)
 	$chars_indexed =~ s/-//g;
-	$chars_indexed = $chars_indexed .= "-";
+	$chars_indexed .= "-";
 	my $re = qr/[$chars_indexed]/i;
 	unless ($match_str =~ $re){
 		throw(400, 'Query did not contain any indexed characters.', { match_str => $match_str });
