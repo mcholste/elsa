@@ -500,7 +500,7 @@ build_syslogng(){
 	fi
 	# Get and build syslog-ng
 	cd $TMP_DIR &&
-	curl "http://www.balabit.com/downloads/files/syslog-ng/open-source-edition/$SYSLOG_VER/source/eventlog_$EVENTLOG_VER.tar.gz" > "eventlog_$EVENTLOG_VER.tar.gz" &&
+	curl -L "http://www.balabit.com/downloads/files/syslog-ng/open-source-edition/$SYSLOG_VER/source/eventlog_$EVENTLOG_VER.tar.gz" > "eventlog_$EVENTLOG_VER.tar.gz" &&
 	tar xzvf "eventlog_$EVENTLOG_VER.tar.gz" &&
 	cd "eventlog-$EVENTLOG_VER" &&
 	./configure && make && make install &&
@@ -513,7 +513,7 @@ build_syslogng(){
 	fi 
 	ldconfig &&
 	cd $TMP_DIR &&
-	curl "http://www.balabit.com/downloads/files/syslog-ng/open-source-edition/$SYSLOG_VER/source/syslog-ng_$SYSLOG_VER.tar.gz" > "syslog-ng_$SYSLOG_VER.tar.gz" &&
+	curl -L "http://www.balabit.com/downloads/files/syslog-ng/open-source-edition/$SYSLOG_VER/source/syslog-ng_$SYSLOG_VER.tar.gz" > "syslog-ng_$SYSLOG_VER.tar.gz" &&
 	tar xzvf "syslog-ng_$SYSLOG_VER.tar.gz" &&
 	cd "syslog-ng-$SYSLOG_VER" &&
 	./configure "--prefix=$BASE_DIR/syslog-ng-$SYSLOG_VER" --enable-ipv6 && 
