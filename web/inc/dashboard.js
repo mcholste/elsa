@@ -1184,7 +1184,7 @@ YAHOO.ELSA.Chart.prototype.openEditor = function(p_oEvent){
 			var oWrapper = oSelf.editor.getChartWrapper();
 			oWrapper.setContainerId(oSelf.wrapper.getContainerId());
 			oSelf.wrapper = oWrapper;
-			oSelf.wrapper.draw(oSelf.dataTable);
+			oSelf.wrapper.draw();
 			if (oSelf.google_dashboard){
 				oSelf.google_dashboard.bind(oSelf.control, oSelf.wrapper);
 				oSelf.google_dashboard.draw(oSelf.dataTable);
