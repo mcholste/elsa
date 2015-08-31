@@ -264,7 +264,7 @@ sub _add {
 		my $row = $sth->fetchrow_hashref;
 		throw(403, 'Dashboard does not belong to this user: ' . $args->{user}->uid . ' ' . $args->{dashboard_id}, { user => 1 }) unless $row;
 		
-		my $options = $self->json->encode({ title => $args->{chart_title} });
+		my $options = $self->json->encode({ title => $args->{title} });
 		if ($args->{options}){
 			if (ref($args->{options})){
 				$options = $self->json->encode($args->{options});
