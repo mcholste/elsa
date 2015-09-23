@@ -339,6 +339,10 @@ sub _get_where_clause {
 						$field = $self->_attr($hash->{field}, $class_id);
 					}
 					if ($field eq 'class_id'){
+						if ($class_id == 0){
+							push @field_clauses, '(1=1)';
+							next;
+						}
 						push @field_clauses, '(class_id=?)';
 						push @values, $self->_value($hash, $class_id);
 					}
