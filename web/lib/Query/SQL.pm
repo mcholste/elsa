@@ -293,8 +293,11 @@ sub _get_select_clause {
 			my $field = $self->_search_field($self->groupby, $class_id);
 			if ($self->_is_meta($self->groupby, $class_id)){
 				$field = $self->_attr($self->groupby, $class_id);
+				push @groupby_attr_clause, '1=1, ' . $field;
 			}
-			push @groupby_attr_clause, sprintf('class_id=%d, ' . $field, $class_id);
+			else {
+				push @groupby_attr_clause, sprintf('class_id=%d, ' . $field, $class_id);
+			}
 		}
 		my $groupby_attr = join(',', map { 'IF(' . $_ } @groupby_attr_clause) . ',id' . join('', map { ')' } @groupby_attr_clause);
 		return {
