@@ -905,7 +905,6 @@ YAHOO.ELSA.Chart.prototype.mergeDataTables = function(p_oAddTable, p_sLabel){
 	
 YAHOO.ELSA.Chart.prototype.draw = function(){
 	if (this.isTimeChart){
-		console.log('timechart');
 		this.makeTimeChart();
 	}
 	else if (this.type == 'GeoChart'){
@@ -983,20 +982,109 @@ YAHOO.ELSA.Chart.prototype.getOptions = function(){
 
 YAHOO.ELSA.Chart.prototype.makeSimpleChart = function(){
 	logger.log('makeSimpleChart');
-	this.wrapper = new google.visualization.ChartWrapper({
-		dataTable: this.dataTable,
-		containerId: this.chart_el,
-		chartType: this.type,
-		options: this.getOptions()
-	});
-	
-	var oSelf = this;
-	google.visualization.events.addListener(this.wrapper, 'ready', function(){
-		google.visualization.events.addListener(oSelf.wrapper.getChart(), 'select', function(){ oSelf.selectHandler() });
-	});
-	
-	this.wrapper.draw();
-	logger.log(this.wrapper);
+	var colorPalette = YAHOO.ODE.Chart.getPalette_a();
+	var paletteLength = colorPalette.length;
+	var data = [];
+	var i = 0;
+	var dt = this.dataTable;
+	var n = dt.getNumberOfRows();
+	for(var i = 0; i < n; ++i) {
+		var label = dt.getValue(i, 0);
+		var value = dt.getValue(i, 1);
+		var thisColor = colorPalette[((paletteLength - ((i+6) % paletteLength)) - 1)];
+		data.push( {
+			label: label,
+			value: value,
+			color: thisColor[0],
+			highlight: thisColor[3]
+		} );
+	}
+	var chartDiv = document.createElement('div');
+	var canvasEl = document.createElement('canvas');
+	chartDiv.appendChild(canvasEl);
+	var ctx = canvasEl.getContext("2d");
+	var hElem = document.createElement('h3');
+	hElem.innerHTML = this.queries[0].query_string;
+	hElem.style['text-align'] = 'center';
+	hElem.style['margin-bottom'] = 0;
+	this.chart_el.appendChild(hElem);
+	this.chart_el.appendChild(chartDiv);
+	var chartClass = 'dbchart';
+	if ('PieChart' == this.type) {
+		chartClass = chartClass + ' pie-chart';
+		var legendDiv = document.createElement('div');
+		legendDiv.setAttribute('class', 'legend');
+		chartDiv.appendChild(legendDiv);
+		legendDiv.style.overflow = 'auto';
+		legendDiv.style.height = '150px';
+		canvasEl.height = 150;
+		canvasEl.width = 160;
+		canvasEl.style.width = '160px';
+		var myPieChart = new Chart(ctx).Pie(data, {});
+		legendDiv.innerHTML = myPieChart.generateLegend();
+		var legendWidth = legendDiv.offsetWidth;
+		legendDiv.style.width = (15 + legendWidth) + 'px';
+		chartDiv.style.width = (legendWidth + 220) + 'px';
+		legendDiv.style['margin-left'] = '15px';
+	} else if ('ColumnChart' == this.type) {
+		chartClass = chartClass + ' bar-chart';
+		var label = dt.getColumnLabel(1);
+		var labels = [];
+		var values = [];
+		var barCount = data.length;
+		var ymax = 0;
+		var thisColor = colorPalette[paletteLength - 3];
+		for(var i = 0; i < data.length; ++i) {
+			var val = data[i]["value"];
+			if (val > ymax) { ymax = val; }
+			values.push(val);
+			labels.push(data[i]["label"]);
+		}
+		data = {
+			labels: labels,
+			datasets: [ {
+				data: values,
+				label: label,
+				fillColor: thisColor[0],
+				strokeColor: thisColor[1],
+				highlightFill: thisColor[2],
+				highlightStroke: thisColor[3]
+			} ]
+		};
+		var opts = YAHOO.ODE.Chart.getSteps(ymax);
+		var legendDiv = document.createElement('div');
+		chartDiv.appendChild(legendDiv);
+		var legendWidth = legendDiv.offsetWidth;
+		canvasEl.height = 150;
+		var cWidth = 400;
+		if (20 + barCount * 6.8 > cWidth) {
+			cWidth = 20 + barCount * 6.8;
+		}
+		canvasEl.width = cWidth;
+		opts['barStrokeWidth'] = 1;
+		opts['barValueSpacing'] = 2;
+		var myBarChart = new Chart(ctx).Bar(data, opts);
+		legendDiv.innerHTML = myBarChart.generateLegend();
+		chartDiv.style.width = (45 + cWidth + legendWidth) + 'px';
+		legendDiv.style.width = (15 + legendWidth) + 'px';
+	} else {
+
+		this.wrapper = new google.visualization.ChartWrapper({
+			dataTable: this.dataTable,
+			containerId: this.chart_el,
+			chartType: this.type,
+			options: this.getOptions()
+		});
+
+		var oSelf = this;
+		google.visualization.events.addListener(this.wrapper, 'ready', function(){
+			google.visualization.events.addListener(oSelf.wrapper.getChart(), 'select', function(){ oSelf.selectHandler() });
+		});
+
+		this.wrapper.draw();
+		logger.log(this.wrapper);
+	}
+	chartDiv.setAttribute('class', chartClass);
 }
 
 YAHOO.ELSA.Chart.prototype.makeGeoChart = function(){

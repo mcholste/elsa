@@ -368,18 +368,12 @@ inputWrapperMiddle{
 .dashboard.cell {
 	vertical-align: text-top;
 }
-canvas.pie-chart {
-	margin: 25px 25px 0 75px;
+div.dbchart canvas {
+	margin: 15px 15px 0 15px;
 }
-.pie-chart, .bar-chart {
+div.dbchart > * {
 	display: inline-block;
 	vertical-align: top;
-}
-canvas.bar-chart {
-	margin: 25px 75px;
-}
-div.pie-chart {
-	margin-top: 30px;
 }
 ul.bar-legend li,
 ul.pie-legend li {
