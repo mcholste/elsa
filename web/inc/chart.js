@@ -5,6 +5,10 @@ YAHOO.ELSA.Chart.registeredCallbacks = {};
 
 YAHOO.namespace('YAHOO.ODE.Chart');
 
+if (typeof Math.log10 === 'undefined') {
+  Math.log10 = function (x) { return Math.log(x) / Math.LN10; };
+}
+
 var rgb2hsl = function(r, g, b) {
   var r1 = r / 255;
   var g1 = g / 255;
@@ -61,13 +65,15 @@ YAHOO.ODE.Chart = function() {
 	Chart.defaults.global.scaleLineColor = "rgba(0,0,0,0.5)";
 	Chart.defaults.global.scaleFontSize = 10;
 	Chart.defaults.global.tooltipTemplate = "<%if (label){%>Key:<%=label%>; Count:<%}%><%= value %>";
+	Chart.defaults.global.tooltipFontSize = 11;
+	Chart.defaults.global.animationSteps = 30;
 	Chart.defaults.Bar.barStrokeWidth = 1;
 	Chart.defaults.Bar.barValueSpacing = 2;
 	Chart.defaults.Bar.scaleShowGridLines = true;
 	Chart.defaults.Bar.scaleShowVerticalLines = false;
 	Chart.defaults.Bar.scaleGridLineColor = "rgba(0,0,0,0.2)";
 	Chart.defaults.Bar.showXLabels = 10;
-	Chart.defaults.HorizontalBar.scaleShowGridLines = true;
+	Chart.defaults.HorizontalBar.scaleShowGridLines = false;
 	Chart.defaults.HorizontalBar.scaleGridLineColor = "rgba(0,0,0,0.2)";
 	Chart.defaults.Line.showXLabels = 10;
 	Chart.defaults.Line.pointDotRadius = 0;
@@ -111,7 +117,7 @@ YAHOO.ODE.Chart = function() {
 			} );
 		},
 		getSteps: function(ymax) {
-			var stepBase = Math.pow(10, Math.floor(Math.log10(ymax)) - 1);
+			var stepBase = Math.pow(10, Math.floor(Math.log10(ymax) - 0.99));
 			var fact = [1, 2, 5, 10];
 			var steps;
 			var stepVal;
@@ -122,7 +128,9 @@ YAHOO.ODE.Chart = function() {
 					break;
 				}
 			}
-			steps /= 2;
+			steps = Math.floor(steps / 2);
+			if (steps * stepVal < ymax)
+				++steps;
 			return {
 				scaleStepWidth: stepVal,
 				scaleSteps: steps
