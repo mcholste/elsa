@@ -174,6 +174,8 @@
     				xStart = Math.round(this.xScalePaddingLeft);
     			if (this.display){
     				ctx.fillStyle = this.textColor;
+				this.showYLabels = 5;
+				this.yLabelsSkipper = Math.ceil(this.yLabels.length/this.showYLabels);
     				ctx.font = this.font;
     				helpers.each(this.yLabels,function(labelString,index){
     					var yLabelCenter = this.endPoint - (yLabelGap * index),
@@ -183,7 +185,7 @@
 
     					ctx.textAlign = "right";
     					ctx.textBaseline = "middle";
-    					if (this.showLabels){
+					if (this.showLabels && (index % this.yLabelsSkipper === 0)){
     						ctx.fillText(labelString,xStart - 10,yLabelCenter);
     					}
     					ctx.beginPath();

@@ -661,16 +661,7 @@ YAHOO.ELSA.Chart = function(p_oArgs, p_oContainer, p_oDashboard){
 		var oElEditChart = document.createElement('span');
 		var sButtonId = "chart_edit_type_" + this.id;
 		var sId = "chart_type_hid_" + this.id;
-		var ctcodes = {
-			LineChart: 'Line',
-			AreaChart: 'Area',
-			BarChart: 'Bar',
-			ColumnChart: 'Column',
-			PieChart: 'Pie',
-			Doughnut: 'Doughnut',
-			Table: 'Table',
-			GeoChart: 'Map'
-		};
+		var ctcodes = YAHOO.ODE.Chart.ctcodes;
 		var oSelf = this;
 		var onMenuItemClick = function(p_sType, p_aArgs, p_oItem){
 			var sText = p_oItem.cfg.getProperty("text");
@@ -1133,7 +1124,12 @@ YAHOO.ELSA.Chart.prototype.makeSimpleChart = function(){
 	chartDiv.appendChild(canvasEl);
 	var ctx = canvasEl.getContext("2d");
 	var hElem = document.createElement('h3');
-	hElem.innerHTML = this.queries[0].query_string;
+	var title = this.options.title;
+	var label = dt.getColumnLabel(1) || this.queries[0].query_string.replace(/.*groupby:/, '').ucfirst();
+	if (!title) {
+		title = label + ' ' + YAHOO.ODE.Chart.getChartCode(this.type) + ' Chart';
+	}
+	hElem.innerHTML = title;
 	hElem.style['margin-bottom'] = 0;
 	this.chart_el.appendChild(hElem);
 	this.chart_el.appendChild(chartDiv);
@@ -1175,7 +1171,6 @@ YAHOO.ELSA.Chart.prototype.makeSimpleChart = function(){
 		//'AreaChart' == this.type || 'LineChart' == this.type || 'ColumnChart' == this.type || 'BarChart' == this.type) {
 		var datasets = [];
 		chartClass = chartClass + ' bar-chart';
-		var label = dt.getColumnLabel(1);
 		var labels = [];
 		var values = [];
 		var barCount = data.length;
@@ -1270,12 +1265,14 @@ YAHOO.ELSA.Chart.prototype.makeSimpleChart = function(){
 			logger.log("OUTER DIV: " + tblODiv.getAttribute('class'));
 			logger.log("INNER DIV: " + tblIDiv.getAttribute('class'));
 			setTimeout(function() {
+				tblODiv.style.width = cdWidth + 'px';
+				logger.log("Table Div Width:"+tblODiv.style.width);
 				if (tblODiv.offsetHeight > 180) {
 					tblODiv.style.height = '180px';
 					var sbWidth = 15;
 					if (typeof InstallTrigger !== 'undefined')
 						sbWidth += 5;
-					tblODiv.style.width = (tblODiv.offsetWidth + sbWidth)+'px';
+//					tblODiv.style.width = (tblODiv.offsetWidth + sbWidth)+'px';
 					tblODiv.style.overflow = 'auto';
 					tblODiv.style['margin-top'] = '15px';
 					tblIDiv.style.overflow = 'none';
