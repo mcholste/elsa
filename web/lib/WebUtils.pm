@@ -47,7 +47,7 @@ body {
 }
 </style>
 <link rel="stylesheet" type="text/css" href=%3$s/inc/custom.css />
-<script type="text/javascript" src="%3$s/inc/ChartLib.js" ></script>
+<script type="text/javascript" src="%3$s/inc/Chart.min.js" ></script>
 <script type="text/javascript" src="%3$s/inc/chart.js" ></script>
 <script type="text/javascript" src="%3$s/inc/utilities.js" ></script>
 <script type="text/javascript" src="%3$s/inc/elsa.js" ></script>
