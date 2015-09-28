@@ -368,3 +368,34 @@ inputWrapperMiddle{
 .dashboard.cell {
 	vertical-align: text-top;
 }
+canvas.pie-chart {
+	margin: 25px 25px 0 75px;
+}
+.pie-chart, .bar-chart {
+	display: inline-block;
+	vertical-align: top;
+}
+canvas.bar-chart {
+	margin: 25px 75px;
+}
+div.pie-chart {
+	margin-top: 30px;
+}
+ul.bar-legend li,
+ul.pie-legend li {
+	list-style: none;
+}
+ul.bar-legend li span,
+ul.pie-legend li span {
+	display: inline-block;
+	width: 1em;
+	height: 1em;
+	margin-right: 0.5em;
+}
+div.chart-div>canvas {
+	margin: auto 10px;
+}
+div.outer-chart-div>div>h3 {
+	float: right;
+	width: 65%;
+}
