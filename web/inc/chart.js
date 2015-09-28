@@ -70,7 +70,7 @@ YAHOO.ODE.Chart = function() {
 	Chart.defaults.HorizontalBar.scaleShowGridLines = true;
 	Chart.defaults.HorizontalBar.scaleGridLineColor = "rgba(0,0,0,0.2)";
 	Chart.defaults.Line.showXLabels = 10;
-	Chart.defaults.Line.pointDotRadius = 1;
+	Chart.defaults.Line.pointDotRadius = 0;
 	Chart.defaults.Line.pointHitDetectionRadius = 2;
 	Chart.defaults.Line.scaleShowGridLines = true;
 	Chart.defaults.Line.scaleShowVerticalLines = false;
@@ -83,7 +83,7 @@ YAHOO.ODE.Chart = function() {
 
 	return {
 		getPalette_a: function() {
-			var a_rgb = [ "#43A5B6", "#aec7e8", "#ff7f0e", "#ffbb78", "#2ca02c", "#98df8a", "#d62728", "#ff9896" ].reverse();
+			var a_rgb = [ "#43A5B6", "#aec7e8", "#ff7f0e", "#ffbb78", "#2ca02c", "#98df8a", "#d62728", "#ff9896","#37ADE9","#A4D168" ].reverse();
 
 			var mk_hsla = function(h,s,l,a) {
 				return "hsla(" + h + "," + s + "%," + l + "%," + a + ")";
@@ -142,8 +142,8 @@ YAHOO.ODE.Chart = function() {
 
 		getChartCode: function(code) {
 			return YAHOO.ODE.Chart.ctcodes[code];
-		}
-
+		},
+		sbWidth: 25
 	};
 
 }();

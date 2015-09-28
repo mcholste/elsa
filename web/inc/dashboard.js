@@ -446,6 +446,7 @@ YAHOO.ELSA.Dashboard.prototype.addChart = function(p_oEvent, p_Obj, p_bAddBefore
 //				delete oMeta.groupby;
 //			}
 			
+			var title = response.title || '';
 			var oNewChart = {
 				chart_id: response.chart_id,
 				queries: [
@@ -458,7 +459,10 @@ YAHOO.ELSA.Dashboard.prototype.addChart = function(p_oEvent, p_Obj, p_bAddBefore
 				],
 				type: response.chart_type,
 				y: p_iRowId,
-				x: p_iCellId
+				x: p_iCellId,
+				chart_options: {
+					title: title
+				}
 			};
 			
 			// new row?
@@ -471,6 +475,12 @@ YAHOO.ELSA.Dashboard.prototype.addChart = function(p_oEvent, p_Obj, p_bAddBefore
 			else {
 				// adding to an existing row
 				oSelf.rows[p_iRowId].charts.push(oNewChart);
+        var charts = oSelf.rows[p_iRowId].charts;
+        for(var i = 0; i < charts.length; ++i) {
+          if (charts[i].chart_id == oNewChart.chart_id) continue;
+          var chartObj = oSelf.charts[ charts[i].chart_id ];
+          chartObj.redraw();
+        }
 			}
 			
 			var oElTd = document.createElement('td');
@@ -503,12 +513,19 @@ YAHOO.ELSA.Dashboard.prototype.addChart = function(p_oEvent, p_Obj, p_bAddBefore
 			oInputEl.setAttribute('value', p_oItem.value);
 		}
 		
-		var aMenu = [
-			{ text:'Bar', value:'ColumnChart', onclick: { fn: onMenuItemClick } },
-			{ text:'Pie', value:'PieChart', onclick: { fn: onMenuItemClick } },
-			{ text:'Table', value:'Table', onclick: { fn: onMenuItemClick } },
-			{ text:'Map', value:'GeoChart', onclick: { fn: onMenuItemClick } }
-		];
+		var aMenu = [];
+		var ctcodes = YAHOO.ODE.Chart.ctcodes;
+		for(var k in ctcodes) {
+			var text = ctcodes[k]
+			aMenu.push( {
+				text: text,
+				value: k,
+				onClick: {
+					fn: onMenuItemClick,
+					scope: this
+				}
+			} );
+		}
 		
 		var oMenuButtonCfg = {
 			id: sButtonId,
@@ -1124,8 +1141,8 @@ YAHOO.ELSA.Chart.prototype.makeSimpleChart = function(){
 	chartDiv.appendChild(canvasEl);
 	var ctx = canvasEl.getContext("2d");
 	var hElem = document.createElement('h3');
-	var title = this.options.title;
-	var label = dt.getColumnLabel(1) || this.queries[0].query_string.replace(/.*groupby:/, '').ucfirst();
+	var title = this.options && this.options.title;
+	var label = dt.getColumnLabel(0) || this.queries[0].query_string.replace(/.*groupby:/, '').ucfirst();
 	if (!title) {
 		title = label + ' ' + YAHOO.ODE.Chart.getChartCode(this.type) + ' Chart';
 	}
@@ -1135,7 +1152,9 @@ YAHOO.ELSA.Chart.prototype.makeSimpleChart = function(){
 	this.chart_el.appendChild(chartDiv);
 	var chartClass = 'dbchart';
     var rCharts = this.dashboard.rows[this.y].charts.length;
-    var cdWidth = 1000 / rCharts;
+    var cdWidth = YAHOO.ELSA.dashboardParams.width / rCharts;
+	this.chart_el.style.width = cdWidth + 'px';
+	this.chart_el.style.height = '258px';
     logger.log("Row charts:"+rCharts+",cdWidth:"+cdWidth);
 	if ('PieChart' == this.type || 'Doughnut' == this.type) {
 		chartClass = chartClass + ' pie-chart';
@@ -1143,10 +1162,10 @@ YAHOO.ELSA.Chart.prototype.makeSimpleChart = function(){
 		legendDiv.setAttribute('class', 'legend');
 		chartDiv.appendChild(legendDiv);
 		legendDiv.style.overflow = 'auto';
-		legendDiv.style.height = '150px';
-		canvasEl.height = 150;
-		canvasEl.width = 160;
-		canvasEl.style.width = '160px';
+		legendDiv.style.height = '225px';
+		canvasEl.height = 225;
+		canvasEl.width = 225;
+		canvasEl.style.width = '225px';
 		hElem.style['text-align'] = 'center';
 		var myPieChart;
 		if ('PieChart' == this.type)
@@ -1160,11 +1179,15 @@ YAHOO.ELSA.Chart.prototype.makeSimpleChart = function(){
 			if (legendWidth > 120) {
 				legendWidth = 120;
 			}
-			legendDiv.style.width = (15 + legendWidth) + 'px';
+			legendDiv.style.width = (YAHOO.ODE.Chart.sbWidth + legendWidth) + 'px';
 			legendDiv.style['margin-left'] = '15px';
 			var xtraWidth = cdWidth - legendWidth - canvasEl.width - 60;
 			if (xtraWidth > 0) {
 				canvasEl.style['margin-left'] = (xtraWidth / 2) + 'px';
+			} else {
+				var canWidth = 225 + xtraWidth;
+				canvasEl.width = canWidth;
+				canvasEl.style.width = canWidth + 'px';
 			}
 		}, 100);
 	} else if (this.type.match(/^(Area|Line|Column|Bar)Chart$/)) {
@@ -1175,7 +1198,7 @@ YAHOO.ELSA.Chart.prototype.makeSimpleChart = function(){
 		var values = [];
 		var barCount = data.length;
 		var ymax = 0;
-		var thisColor = colorPalette[paletteLength - 5];
+		var thisColor = colorPalette[paletteLength - 10];
 		for(var i = 0; i < data.length; ++i) {
 			var val = data[i]["value"];
 			if (val > ymax) { ymax = val; }
@@ -1197,10 +1220,10 @@ YAHOO.ELSA.Chart.prototype.makeSimpleChart = function(){
 		var opts = YAHOO.ODE.Chart.getSteps(ymax);
 		var legendDiv = document.createElement('div');
 		chartDiv.appendChild(legendDiv);
-        canvasEl.height = 150;
+        canvasEl.height = 225;
         var cWidth = 400;
 		if (cdWidth > 500) {
-			cWidth = cdWidth - 150;
+			cWidth = cdWidth - 225;
 		}
 		/*
         if (20 + barCount * 6.8 > cWidth) {
@@ -1214,7 +1237,8 @@ YAHOO.ELSA.Chart.prototype.makeSimpleChart = function(){
 		if (this.type.match('^(Column|Bar)Chart$')) {
 			opts['barValueSpacing'] = barCount > 10 ? 1 : 2;
 		} else {
-			opts['pointHitDetectionRadius'] = barCount > 10 ? 1 : 2;
+			opts['pointDotRadius'] = barCount > 10 ? 0 : 1;
+			opts['pointHitDetectionRadius'] = 1 + Math.floor(0.4 * ((cWidth - 60) / barCount));
 		}
 		logger.log("OPTIONS: " + JSON.stringify(opts));
 		if ('ColumnChart' == this.type)
@@ -1223,10 +1247,13 @@ YAHOO.ELSA.Chart.prototype.makeSimpleChart = function(){
 			myBarChart = new Chart(ctx).HorizontalBar(data, opts);
 		else {
 			var dset = data.datasets[0];
-			dset.pointColor = dset.strokeColor;
-			dset.pointStrokeColor = "#fff";
-			dset.pointHighlightFill = "#fff";
-			dset.pointHighlightStroke = dset.strokeColor;
+			thisColor = colorPalette[paletteLength - 9];
+			dset.fillColor = thisColor[0];
+			dset.strokeColor = thisColor[1];
+			dset.pointColor = thisColor[1];
+			dset.pointStrokeColor = thisColor[1];
+			dset.pointHighlightFill = thisColor[2];
+			dset.pointHighlightStroke = thisColor[3];
 			if ('LineChart' == this.type)
 				dset.fillColor = "rgba(0,0,0,0)";
 			myBarChart = new Chart(ctx).Line(data, opts);
@@ -1234,7 +1261,7 @@ YAHOO.ELSA.Chart.prototype.makeSimpleChart = function(){
 		logger.log("data:"+JSON.stringify(data));
 		legendDiv.innerHTML = myBarChart.generateLegend();
 		setTimeout(function() {
-			var legendWidth = legendDiv.offsetWidth + 15;
+			var legendWidth = legendDiv.offsetWidth + YAHOO.ODE.Chart.sbWidth;
 			chartDiv.style.width = cdWidth + 'px';
 			cnWidth = cdWidth - 40 - legendWidth;
 			logger.log("Legend Width:"+legendWidth+", chartDiv width:"+cdWidth+", canvas width:"+cnWidth);
@@ -1262,20 +1289,20 @@ YAHOO.ELSA.Chart.prototype.makeSimpleChart = function(){
 			logger.log("TABLE CHART el:" + this.chart_el.id);
 			var tblODiv = this.chart_el.firstChild;
 			var tblIDiv = tblODiv.firstChild;
+			var btnDiv = this.chart_el.parentNode.firstChild;
+			btnDiv.style['margin-bottom'] = '15px';
 			logger.log("OUTER DIV: " + tblODiv.getAttribute('class'));
 			logger.log("INNER DIV: " + tblIDiv.getAttribute('class'));
 			setTimeout(function() {
 				tblODiv.style.width = cdWidth + 'px';
 				logger.log("Table Div Width:"+tblODiv.style.width);
-				if (tblODiv.offsetHeight > 180) {
-					tblODiv.style.height = '180px';
+				if (tblODiv.offsetHeight > 245) {
+					tblODiv.style.height = '245px';
 					var sbWidth = 15;
 					if (typeof InstallTrigger !== 'undefined')
 						sbWidth += 5;
 //					tblODiv.style.width = (tblODiv.offsetWidth + sbWidth)+'px';
 					tblODiv.style.overflow = 'auto';
-					tblODiv.style['margin-top'] = '15px';
-					tblIDiv.style.overflow = 'none';
 				}
 			}, 100);
 		}
@@ -2030,11 +2057,19 @@ YAHOO.ELSA.addChart = function(p_oEvent, p_a){
 			oInputEl.setAttribute('value', p_oItem.value);
 		}
 		
-		var aMenu = [
-			{ text:'Bar', value:'ColumnChart', onclick: { fn: onMenuItemClick } },
-			{ text:'Pie', value:'PieChart', onclick: { fn: onMenuItemClick } },
-			{ text:'Table', value:'Table', onclick: { fn: onMenuItemClick } }
-		];
+		var aMenu = [];
+		var ctcodes = YAHOO.ODE.Chart.ctcodes;
+		for(var k in ctcodes) {
+			var text = ctcodes[k]
+			aMenu.push( {
+				text: text,
+				value: k,
+				onClick: {
+					fn: onMenuItemClick,
+					scope: this
+				}
+			} );
+		}
 		
 		var oMenuButtonCfg = {
 			id: sButtonId,

@@ -329,7 +329,7 @@ inputWrapperMiddle{
 }
 .overlay{
 	background-color:#FFFFFF;
-	border: 2px solid rgb(216, 220, 255);
+	border: 1px solid rgb(216, 220, 255);
 	padding: 8px;
 }
 .searchTerm{
@@ -377,12 +377,14 @@ div.dbchart > * {
 }
 ul.line-legend li,
 ul.bar-legend li,
+ul.horizontalbar-legend li,
 ul.doughnut-legend li,
 ul.pie-legend li {
 	list-style: none;
 }
 ul.line-legend li span,
 ul.bar-legend li span,
+ul.horizontalbar-legend li span,
 ul.doughnut-legend li span,
 ul.pie-legend li span {
 	display: inline-block;
