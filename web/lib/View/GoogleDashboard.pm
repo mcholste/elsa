@@ -14,7 +14,7 @@ use AnyEvent;
 use Try::Tiny;
 use Ouch qw(:trytiny);
 
-our $Default_width = 1000;
+our $Default_width = 1360;
 
 has 'system_dashboards' => (traits => [qw(Hash)], is => 'rw', isa => 'HashRef', required => 1, default => sub { {
 	_system => {

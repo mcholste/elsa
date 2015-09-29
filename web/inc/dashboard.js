@@ -446,6 +446,7 @@ YAHOO.ELSA.Dashboard.prototype.addChart = function(p_oEvent, p_Obj, p_bAddBefore
 //				delete oMeta.groupby;
 //			}
 			
+			var title = response.title || '';
 			var oNewChart = {
 				chart_id: response.chart_id,
 				queries: [
@@ -458,7 +459,10 @@ YAHOO.ELSA.Dashboard.prototype.addChart = function(p_oEvent, p_Obj, p_bAddBefore
 				],
 				type: response.chart_type,
 				y: p_iRowId,
-				x: p_iCellId
+				x: p_iCellId,
+				chart_options: {
+					title: title
+				}
 			};
 			
 			// new row?
@@ -471,6 +475,12 @@ YAHOO.ELSA.Dashboard.prototype.addChart = function(p_oEvent, p_Obj, p_bAddBefore
 			else {
 				// adding to an existing row
 				oSelf.rows[p_iRowId].charts.push(oNewChart);
+        var charts = oSelf.rows[p_iRowId].charts;
+        for(var i = 0; i < charts.length; ++i) {
+          if (charts[i].chart_id == oNewChart.chart_id) continue;
+          var chartObj = oSelf.charts[ charts[i].chart_id ];
+          chartObj.redraw();
+        }
 			}
 			
 			var oElTd = document.createElement('td');
@@ -503,12 +513,19 @@ YAHOO.ELSA.Dashboard.prototype.addChart = function(p_oEvent, p_Obj, p_bAddBefore
 			oInputEl.setAttribute('value', p_oItem.value);
 		}
 		
-		var aMenu = [
-			{ text:'Bar', value:'ColumnChart', onclick: { fn: onMenuItemClick } },
-			{ text:'Pie', value:'PieChart', onclick: { fn: onMenuItemClick } },
-			{ text:'Table', value:'Table', onclick: { fn: onMenuItemClick } },
-			{ text:'Map', value:'GeoChart', onclick: { fn: onMenuItemClick } }
-		];
+		var aMenu = [];
+		var ctcodes = YAHOO.ODE.Chart.ctcodes;
+		for(var k in ctcodes) {
+			var text = ctcodes[k]
+			aMenu.push( {
+				text: text,
+				value: k,
+				onClick: {
+					fn: onMenuItemClick,
+					scope: this
+				}
+			} );
+		}
 		
 		var oMenuButtonCfg = {
 			id: sButtonId,
@@ -620,6 +637,10 @@ YAHOO.ELSA.Dashboard.prototype.moveChart = function(p_oEvent, p_a){
 	}, oArgs);
 }
 
+String.prototype.ucfirst = function() {
+	return this.charAt(0).toUpperCase() + this.slice(1);
+}
+
 YAHOO.ELSA.Chart = function(p_oArgs, p_oContainer, p_oDashboard){
 	
 	logger.log('chart p_oArgs', p_oArgs);
@@ -654,38 +675,85 @@ YAHOO.ELSA.Chart = function(p_oArgs, p_oContainer, p_oDashboard){
 		var oElEditEl = new YAHOO.util.Element(this.edit_el);
 		oElEditEl.addClass('hiddenElement');
 		
-		var oElEditChart = document.createElement('a');
-		oElEditChart.href = '#';
-		oElEditChart.innerHTML = 'Edit Chart Appearance';
-		this.edit_el.appendChild(oElEditChart);
-		var oElEditChartEl = new YAHOO.util.Element(oElEditChart);
-		oElEditChartEl.on('click', this.openEditor, this, this);
-		
-		this.edit_el.appendChild(document.createElement('br'));
-		
-		var oElEditQueries = document.createElement('a');
-		oElEditQueries.href = '#';
-		oElEditQueries.innerHTML = 'Edit Chart Queries';
-		this.edit_el.appendChild(oElEditQueries);
-		var oElEditQueriesEl = new YAHOO.util.Element(oElEditQueries);
+		var oElEditChart = document.createElement('span');
+		var sButtonId = "chart_edit_type_" + this.id;
+		var sId = "chart_type_hid_" + this.id;
+		var ctcodes = YAHOO.ODE.Chart.ctcodes;
 		var oSelf = this;
-		oElEditQueriesEl.on('click', function(){
+		var onMenuItemClick = function(p_sType, p_aArgs, p_oItem){
+			var sText = p_oItem.cfg.getProperty("text");
+			var sButtonId = "chart_edit_type_" + this.id;
+			logger.log("Args: sText" + sText + "," + p_aArgs + "," + p_oItem + ' button:' + sButtonId);
+			// Set the label of the button to be our selection
+			var oAuthButton = YAHOO.widget.Button.getButton(sButtonId);
+			oAuthButton.set('label', sText);
+			var cType = p_oItem.value;
+			logger.log("New value: " + cType);
+			logger.log("oSelf is a:"+typeof(oSelf));
+/*			var keys = [];
+			for(var k in oSelf) {
+				keys.push(k); //""+k+":"+oSelf[k]);
+			}
+			logger.log("oSelf="+keys.sort().join(", "));
+*/
+			var options = oSelf.getOptions();
+			logger.log("Options: " + options +
+				"JSON: " + JSON.stringify(options));
+			var oToUpdate = {
+				options: options,
+				type: cType
+			}
+			logger.log("init oToUpdate done. oSelf id="+oSelf.id);
+			var oPostData = {
+				chart_id: oSelf.id,
+				to_update: oToUpdate
+			}
+			YAHOO.ELSA.async('../Charts/update', function(){
+				logger.log('updated ok');
+			}, oPostData);
+			logger.log("Going to set chart type");
+			oSelf.type = cType;
+			logger.log("Donesetiing charttype to:"+oSelf.type);
+			oSelf.redraw();
+		};
+		var aMenu = [];
+		for(var k in ctcodes) {
+			var text = ctcodes[k]
+			aMenu.push( {
+				text: text,
+				value: k,
+				onClick: {
+					fn: onMenuItemClick,
+					scope: this
+				}
+			} );
+		}
+		
+		var oEditCTypeButton = new YAHOO.widget.Button( {
+			id: sButtonId,
+			type: 'menu',
+			label: 'Chart Type',
+			name: sButtonId,
+			menu: aMenu,
+			container: oElEditChart
+		} );
+		
+		oEditCTypeButton.set('label', ctcodes[this.type]);
+
+		this.edit_el.appendChild(oElEditChart);
+
+		var oElChartOps = document.createElement('span');
+		this.edit_el.appendChild(oElChartOps);
+		var sButtonId = 'chart_opts_btn_' + self.id;
+		var fnEditChartQueries = function(){
 			YAHOO.ELSA.async('../Charts/get?chart_id=' + oSelf.id, function(p_oData){
 				if (!p_oData){
 					return;
 				}
 				oSelf.editQueries(p_oData, '../');
 			});
-		});
-		
-		this.edit_el.appendChild(document.createElement('br'));
-		
-		var oElDelChart = document.createElement('a');
-		oElDelChart.href = '#';
-		oElDelChart.innerHTML = 'Delete Chart';
-		this.edit_el.appendChild(oElDelChart);
-		var oElDelChartEl = new YAHOO.util.Element(oElDelChart);
-		oElDelChartEl.on('click', function(){
+		};
+		var fnDeleteChart = function() {
 			var oSelf = this;
 			var oConfirmationPanel = new YAHOO.ELSA.Panel.Confirmation(function(){
 				oPanel = this;
@@ -700,30 +768,63 @@ YAHOO.ELSA.Chart = function(p_oArgs, p_oContainer, p_oDashboard){
 				});
 			}, null, 'Really delete chart?');
 			
-		}, this, this);
+		};
+		var oMenu = [
+			{ text: 'Edit Chart Queries', value: 'EditChartQueries', onClick: { fn: fnEditChartQueries } },
+			{ text: 'Delete Chart', value: 'DeleteChart', onClick: { fn: fnDeleteChart, obj: this, scope: this } },
+			{
+				text: 'Add Chart to This Row',
+				value: 'AddChart2Row',
+				onClick: {
+					fn: function(a, b, c) {
+						logger.log("ADDCHART2ROW:",b,c);
+						this.dashboard.addChart(b[0], c);
+					},
+					obj: this,
+					scope: this
+				}
+			},
+		];
+		var oChartOpsButton = new YAHOO.widget.Button( {
+			id: sButtonId,
+			type: 'menu',
+			label: 'Chart Options',
+			name: sButtonId,
+			menu: oMenu,
+			container: oElChartOps
+		} );
+		
+		//this.edit_el.appendChild(document.createElement('br'));
+		
+/*		oElEditQueries.href = '#';
+		oElEditQueries.innerHTML = 'Edit Chart Queries';
+		this.edit_el.appendChild(oElEditQueries);
+		var oElEditQueriesEl = new YAHOO.util.Element(oElEditQueries);
+		var oSelf = this;
+//		oElEditQueriesEl.on('click', editCharQueries);
 		
 		this.edit_el.appendChild(document.createElement('br'));
 		
-		// Add the "add" button
-		var oElAddChart = document.createElement('a');
-		oElAddChart.href = '#';
-		oElAddChart.innerHTML = 'Add Another Chart to This Row';
-		this.edit_el.appendChild(oElAddChart);
-		var oElAddChartEl = new YAHOO.util.Element(oElAddChart);
-		oElAddChartEl.on('click', this.dashboard.addChart, this, this.dashboard);
+		var oElDelChart = document.createElement('a');
+		oElDelChart.href = '#';
+		oElDelChart.innerHTML = 'Delete Chart';
+		this.edit_el.appendChild(oElDelChart);
+		var oElDelChartEl = new YAHOO.util.Element(oElDelChart);
+		oElDelChartEl.on('click', fnDeleteChart, this, this);
 		
-		this.edit_el.appendChild(document.createElement('br'));
-		
+		//this.edit_el.appendChild(document.createElement('br'));
+		*/
 		// Add the "move" button
-		var oElMove = document.createElement('div');
-		oElMove.appendChild(document.createTextNode('Move '));
+//		var oElMove = document.createElement('div');
+		var oElMove = document.createElement('span');
+//		oElMove.appendChild(document.createTextNode('Move '));
 		var oDirections = {
 			up:1,
 			down:1,
 			left:1,
 			right:1
 		}
-		if ((this.y >= (this.dashboard.rows.length - 1)) && (this.dashboard.rows[this.y].length < 2)){
+		if ((this.y >= (this.dashboard.rows.length - 1)) && (this.dashboard.rows[this.y].charts.length < 2)){
 			delete oDirections.down;
 		}
 		if (this.y == 0){
@@ -735,7 +836,9 @@ YAHOO.ELSA.Chart = function(p_oArgs, p_oContainer, p_oDashboard){
 		if (this.x >= (this.dashboard.rows[this.y].charts.length - 1)){
 			delete oDirections.right;
 		}
+		mMenu = [];
 		for (var i in oDirections){
+			/*
 			var oEl = document.createElement('a');
 			oEl.href = '#';
 			oEl.innerHTML = i;
@@ -743,8 +846,41 @@ YAHOO.ELSA.Chart = function(p_oArgs, p_oContainer, p_oDashboard){
 			oElMove.appendChild(document.createTextNode(' '));
 			var oElEl = new YAHOO.util.Element(oEl);
 			oElEl.on('click', this.dashboard.moveChart, [this, i], this.dashboard);
+			*/
+			mMenu.push( {
+				text: i.ucfirst(),
+				value: i,
+				onClick: {
+					fn: function(a, b, c) {
+						this.moveChart(b[0], c);
+					},
+					obj: [this, i],
+					scope: this.dashboard
 		}
+			} );
+		}
+		var sButtonId = 'btn_move_' + this.id;
+		var oChartOpsButton = new YAHOO.widget.Button( {
+			id: sButtonId,
+			type: 'menu',
+			label: 'Move',
+			name: sButtonId,
+			menu: mMenu,
+			container: oElMove
+		} );
+		
 		this.edit_el.appendChild(oElMove);
+		/*
+		this.edit_el.appendChild(document.createElement('br'));
+
+		// Add the "add" button
+		var oElAddChart = document.createElement('a');
+		oElAddChart.href = '#';
+		oElAddChart.innerHTML = 'Add Another Chart to This Row';
+		this.edit_el.appendChild(oElAddChart);
+		var oElAddChartEl = new YAHOO.util.Element(oElAddChart);
+		oElAddChartEl.on('click', this.dashboard.addChart, this, this.dashboard);
+		*/
 	}
 	
 	for (var i in this.queries){
@@ -905,7 +1041,7 @@ YAHOO.ELSA.Chart.prototype.mergeDataTables = function(p_oAddTable, p_sLabel){
 	
 YAHOO.ELSA.Chart.prototype.draw = function(){
 	if (this.isTimeChart){
-		console.log('timechart');
+		logger.log('timechart');
 		this.makeTimeChart();
 	}
 	else if (this.type == 'GeoChart'){
@@ -983,20 +1119,209 @@ YAHOO.ELSA.Chart.prototype.getOptions = function(){
 
 YAHOO.ELSA.Chart.prototype.makeSimpleChart = function(){
 	logger.log('makeSimpleChart');
-	this.wrapper = new google.visualization.ChartWrapper({
-		dataTable: this.dataTable,
-		containerId: this.chart_el,
-		chartType: this.type,
-		options: this.getOptions()
-	});
-	
-	var oSelf = this;
-	google.visualization.events.addListener(this.wrapper, 'ready', function(){
-		google.visualization.events.addListener(oSelf.wrapper.getChart(), 'select', function(){ oSelf.selectHandler() });
-	});
-	
-	this.wrapper.draw();
-	logger.log(this.wrapper);
+	var colorPalette = YAHOO.ODE.Chart.getPalette_a();
+	var paletteLength = colorPalette.length;
+	var data = [];
+	var i = 0;
+	var dt = this.dataTable;
+	var n = dt.getNumberOfRows();
+	for(var i = 0; i < n; ++i) {
+		var label = dt.getValue(i, 0);
+		var value = dt.getValue(i, 1);
+		var thisColor = colorPalette[((paletteLength - ((i+6) % paletteLength)) - 1)];
+		data.push( {
+			label: label,
+			value: value,
+			color: thisColor[0],
+			highlight: thisColor[3]
+		} );
+	}
+	var chartDiv = document.createElement('div');
+	var canvasEl = document.createElement('canvas');
+	chartDiv.appendChild(canvasEl);
+	var ctx = canvasEl.getContext("2d");
+	var hElem = document.createElement('h3');
+	var title = this.options && this.options.title;
+	var label = dt.getColumnLabel(0) || this.queries[0].query_string.replace(/.*groupby:/, '').ucfirst();
+	if (!title) {
+		title = label + ' ' + YAHOO.ODE.Chart.getChartCode(this.type) + ' Chart';
+	}
+	hElem.innerHTML = title;
+	hElem.style['margin-bottom'] = 0;
+	this.chart_el.appendChild(hElem);
+	this.chart_el.appendChild(chartDiv);
+	var chartClass = 'dbchart';
+    var rCharts = this.dashboard.rows[this.y].charts.length;
+    var cdWidth = YAHOO.ELSA.dashboardParams.width / rCharts;
+	this.chart_el.style.width = cdWidth + 'px';
+	this.chart_el.style.height = '258px';
+    logger.log("Row charts:"+rCharts+",cdWidth:"+cdWidth);
+	if ('PieChart' == this.type || 'Doughnut' == this.type) {
+		chartClass = chartClass + ' pie-chart';
+		var legendDiv = document.createElement('div');
+		legendDiv.setAttribute('class', 'legend');
+		chartDiv.appendChild(legendDiv);
+		legendDiv.style.overflow = 'auto';
+		legendDiv.style.height = '225px';
+		canvasEl.height = 225;
+		canvasEl.width = 225;
+		canvasEl.style.width = '225px';
+		hElem.style['text-align'] = 'center';
+		var myPieChart;
+		if ('PieChart' == this.type)
+			myPieChart = new Chart(ctx).Pie(data, {});
+		else
+			myPieChart = new Chart(ctx).Doughnut(data, {});
+		legendDiv.innerHTML = myPieChart.generateLegend();
+		setTimeout(function() {
+			chartDiv.style.width = cdWidth + 'px';
+			var legendWidth = legendDiv.offsetWidth;
+			if (legendWidth > 120) {
+				legendWidth = 120;
+			}
+			legendDiv.style.width = (YAHOO.ODE.Chart.sbWidth + legendWidth) + 'px';
+			legendDiv.style['margin-left'] = '15px';
+			var xtraWidth = cdWidth - legendWidth - canvasEl.width - 60;
+			if (xtraWidth > 0) {
+				canvasEl.style['margin-left'] = (xtraWidth / 2) + 'px';
+			} else {
+				var canWidth = 225 + xtraWidth;
+				canvasEl.width = canWidth;
+				canvasEl.style.width = canWidth + 'px';
+			}
+		}, 70);
+	} else if (this.type.match(/^(Area|Line|Column|Bar)Chart$/)) {
+		//'AreaChart' == this.type || 'LineChart' == this.type || 'ColumnChart' == this.type || 'BarChart' == this.type) {
+		var datasets = [];
+		chartClass = chartClass + ' bar-chart';
+		var labels = [];
+		var values = [];
+		var barCount = data.length;
+		var ymax = 0;
+		var thisColor = colorPalette[paletteLength - 10];
+		for(var i = 0; i < data.length; ++i) {
+			var val = data[i]["value"];
+			if (val > ymax) { ymax = val; }
+			values.push(val);
+			labels.push(data[i]["label"]);
+		}
+		data = {
+			labels: labels,
+			datasets: [ {
+				data: values,
+				label: label,
+				fillColor: thisColor[0],
+				strokeColor: thisColor[1],
+				highlightFill: thisColor[2],
+				highlightStroke: thisColor[3]
+			} ]
+		};
+		var barCount = values.length;
+		var opts = YAHOO.ODE.Chart.getSteps(ymax);
+		var legendDiv = document.createElement('div');
+		chartDiv.appendChild(legendDiv);
+        canvasEl.height = 225;
+        var cWidth = cdWidth - 150;
+		/*
+        if (20 + barCount * 6.8 > cWidth) {
+            cWidth = 20 + barCount * 6.8;
+		}
+		*/
+		canvasEl.width = cWidth;
+		canvasEl.style.width = cWidth + 'px';
+		hElem.style['text-align'] = 'center';
+		if (this.type.match('^(Column|Bar)Chart$')) {
+			opts['barValueSpacing'] = barCount > 10 ? 1 : 2;
+		} else {
+			opts['pointDotRadius'] = barCount > 10 ? 0 : 1;
+			opts['pointHitDetectionRadius'] = 1 + Math.floor(0.4 * ((cWidth - 60) / barCount));
+		}
+		var makeChart;
+		if ('ColumnChart' == this.type)
+			makeChart = function(ctx, data, opts) { return new Chart(ctx).Bar(data, opts); }
+		else if ('BarChart' == this.type) {
+			logger.log("BAR OPTIONS: " + JSON.stringify(opts));
+			makeChart = function(ctx, data, opts) { return new Chart(ctx).HorizontalBar(data, opts); }
+			opts['animation'] = false;
+		} else {
+			var dset = data.datasets[0];
+			thisColor = colorPalette[paletteLength - 9];
+			dset.fillColor = thisColor[0];
+			dset.strokeColor = thisColor[1];
+			dset.pointColor = thisColor[1];
+			dset.pointStrokeColor = thisColor[1];
+			dset.pointHighlightFill = thisColor[2];
+			dset.pointHighlightStroke = thisColor[3];
+			if ('LineChart' == this.type)
+				dset.fillColor = "rgba(0,0,0,0)";
+			opts['animation'] = false;
+			makeChart = function(ctx, data, opts) { return new Chart(ctx).Line(data, opts); }
+		}
+		var myBarChart = makeChart(ctx, data, opts);
+		logger.log("data:"+JSON.stringify(data));
+		legendDiv.innerHTML = myBarChart.generateLegend();
+		var oSelf = this;
+		setTimeout(function() {
+			var legendWidth = legendDiv.offsetWidth + YAHOO.ODE.Chart.sbWidth;
+			chartDiv.style.width = cdWidth + 'px';
+			cnWidth = cdWidth - 40 - legendWidth;
+			logger.log("Legend Width:"+legendWidth+", chartDiv width:"+cdWidth+", canvas width:"+cnWidth);
+			if ('animation' in opts) {
+				var ctx = canvasEl.getContext('2d');
+				ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+				myBarChart.destroy();
+				myBarChart.clear();
+			}
+			canvasEl.width = cnWidth;
+			canvasEl.style.width = cnWidth + 'px';
+			logger.log("CANVAS WIDTH: "+cWidth+"(INITIAL), " + cnWidth + "(NEW)");
+			legendDiv.style.width = legendWidth + 'px';
+			if ('animation' in opts) {
+				opts['animation'] = true;
+				myBarChart = makeChart(ctx, data, opts);
+			}
+		}, 50);
+	} else {
+
+		this.wrapper = new google.visualization.ChartWrapper({
+			dataTable: this.dataTable,
+			containerId: this.chart_el,
+			chartType: this.type,
+			options: this.getOptions()
+		});
+
+		var oSelf = this;
+		google.visualization.events.addListener(this.wrapper, 'ready', function(){
+			google.visualization.events.addListener(oSelf.wrapper.getChart(), 'select', function(){ oSelf.selectHandler() });
+		});
+
+		this.wrapper.draw();
+
+		if ('Table' == this.type) {
+			logger.log("TABLE CHART el:" + this.chart_el.id);
+			var tblODiv = this.chart_el.firstChild;
+			var tblIDiv = tblODiv.firstChild;
+			var btnDiv = this.chart_el.parentNode.firstChild;
+			btnDiv.style['margin-bottom'] = '15px';
+			logger.log("OUTER DIV: " + tblODiv.getAttribute('class'));
+			logger.log("INNER DIV: " + tblIDiv.getAttribute('class'));
+			setTimeout(function() {
+				tblODiv.style.width = cdWidth + 'px';
+				logger.log("Table Div Width:"+tblODiv.style.width);
+				if (tblODiv.offsetHeight > 245) {
+					tblODiv.style.height = '245px';
+					var sbWidth = 15;
+					if (typeof InstallTrigger !== 'undefined')
+						sbWidth += 5;
+//					tblODiv.style.width = (tblODiv.offsetWidth + sbWidth)+'px';
+					tblODiv.style.overflow = 'auto';
+				}
+			}, 70);
+		}
+
+		logger.log(this.wrapper);
+	}
+	chartDiv.setAttribute('class', chartClass);
 }
 
 YAHOO.ELSA.Chart.prototype.makeGeoChart = function(){
@@ -1175,7 +1500,121 @@ YAHOO.ELSA.Chart.prototype.makeTimeChart = function(){
 //	//return oData;
 //}
 
+/*
 YAHOO.ELSA.Chart.prototype.openEditor = function(p_oEvent){
+	logger.log("Edit chart called");
+	var handleCancel = function(){ this.hide() };
+	var oSelf = this;
+	var id = oSelf.id;
+	var sButtonId = "chart_edit_type_" + id;
+	var sId = "chart_type_hid_" + id;
+	var panelId = 'EditPanel#' + id;
+	var handleSubmit = function(){
+			var oInputEl = YAHOO.util.Dom.get(sId);
+			var cType = oInputEl.value;
+			logger.log("oSelf is a:"+typeof(oSelf));
+			var keys = [];
+			for(var k in oSelf) {
+				keys.push(k); //""+k+":"+oSelf[k]);
+			}
+			logger.log("oSelf="+keys.sort().join(", "));
+			logger.log("Chart type: " + cType);
+			var options = oSelf.getOptions();
+			logger.log("Options: " + options +
+				"JSON: " + JSON.stringify(options));
+			var oToUpdate = {
+				options: options,
+				type: cType
+			}
+			logger.log("init oToUpdate done. oSelf id="+oSelf.id);
+			var oPostData = {
+				chart_id: oSelf.id,
+				to_update: oToUpdate
+			}
+			YAHOO.ELSA.async('../Charts/update', function(){
+				logger.log('updated ok');
+			}, oPostData);
+			logger.log("Going to set chart type");
+			oSelf.type = cType;
+			logger.log("Donesetiing charttype to:"+oSelf.type);
+			oSelf.redraw();
+			var oEditPanel = YAHOO.ELSA.panels[panelId];
+			oEditPanel.panel.hide();
+	};
+	var oEditPanel = YAHOO.ELSA.Panel(panelId, {
+		buttons : [ {
+				text:"Submit",
+				handler: handleSubmit,
+				isDefault:true
+			},
+			{
+				text:"Cancel", 
+				handler:handleCancel
+			} ]
+	} );
+	var handleSuccess = function() { oEditPanel.panel.hide() }
+	oEditPanel.panel.callback = {
+		success: handleSuccess,
+		failure: YAHOO.ELSA.Error
+	};
+	oEditPanel.panel.renderEvent.subscribe(function(){
+		oEditPanel.panel.setBody('');
+		oEditPanel.panel.setHeader('Edit Chart Appearance');
+		oEditPanel.panel.bringToTop();
+		var sFormId = oEditPanel.panel.form.id;
+		var onMenuItemClick = function(p_sType, p_aArgs, p_oItem){
+			var sText = p_oItem.cfg.getProperty("text");
+			logger.log("Args: sText" + sText + "," + p_aArgs + "," + p_oItem);
+			// Set the label of the button to be our selection
+			var oAuthButton = YAHOO.widget.Button.getButton(sButtonId);
+			oAuthButton.set('label', sText);
+			var oFormEl = YAHOO.util.Dom.get(sFormId);
+			var oInputEl = YAHOO.util.Dom.get(sId);
+			logger.log("New value: " + p_oItem.value);
+			oInputEl.setAttribute('value', p_oItem.value);
+		};
+		var aMenu = [
+			{ text:'Line', value:'LineChart', onclick: { fn: onMenuItemClick } },
+			{ text:'Area', value:'AreaChart', onclick: { fn: onMenuItemClick } },
+			{ text:'Bar', value:'ColumnChart', onclick: { fn: onMenuItemClick } },
+			{ text:'Pie', value:'PieChart', onclick: { fn: onMenuItemClick } },
+			{ text:'Doughnut', value:'Doughnut', onclick: { fn: onMenuItemClick } },
+			{ text:'Table', value:'Table', onclick: { fn: onMenuItemClick } },
+			{ text:'Map', value:'GeoChart', onclick: { fn: onMenuItemClick } }
+		];
+			
+		var oMenuButtonCfg = {
+			id: sButtonId,
+			type: 'menu',
+			label: 'Chart Type',
+			name: sButtonId,
+			menu: aMenu
+		};
+
+		var oFormGridCfg = {
+			grid: [
+				[ {type:'text', args:'Type'}, {type:'widget', className:'Button', args:oMenuButtonCfg} ],
+			]
+		};
+
+		var oForm = new YAHOO.ELSA.Form(oEditPanel.panel.form, oFormGridCfg);
+		var ctLabel = new Object;
+		for(var i = 0; i < aMenu.length; ++i) {
+			ctLabel[aMenu[i].value] = aMenu[i].text;
+		}
+		var oAuthButton = YAHOO.widget.Button.getButton(sButtonId);
+		oAuthButton.set('label', ctLabel[oSelf.type]);
+		var oInputEl = document.createElement('input');
+		oInputEl.id = sId;
+		oInputEl.setAttribute('type', 'hidden');
+		oInputEl.setAttribute('name', 'chart_type');
+		oInputEl.setAttribute('value', 0);
+		oForm.form.appendChild(oInputEl);
+		
+	} );
+	oEditPanel.panel.render();
+	oEditPanel.panel.show();
+};
 	// Handler for the "Open Editor" button.
 	if (!this.editor){
 		this.editor = new google.visualization.ChartEditor();
@@ -1207,6 +1646,7 @@ YAHOO.ELSA.Chart.prototype.openEditor = function(p_oEvent){
 	this.editor.openDialog(oCloneChart);
 	
 }
+*/
 
 YAHOO.ELSA.Chart.prototype.editQueries = function(p_oData, p_sPathToQueryDir){
 	var oSelf = this;
@@ -1629,11 +2069,19 @@ YAHOO.ELSA.addChart = function(p_oEvent, p_a){
 			oInputEl.setAttribute('value', p_oItem.value);
 		}
 		
-		var aMenu = [
-			{ text:'Bar', value:'ColumnChart', onclick: { fn: onMenuItemClick } },
-			{ text:'Pie', value:'PieChart', onclick: { fn: onMenuItemClick } },
-			{ text:'Table', value:'Table', onclick: { fn: onMenuItemClick } }
-		];
+		var aMenu = [];
+		var ctcodes = YAHOO.ODE.Chart.ctcodes;
+		for(var k in ctcodes) {
+			var text = ctcodes[k]
+			aMenu.push( {
+				text: text,
+				value: k,
+				onClick: {
+					fn: onMenuItemClick,
+					scope: this
+				}
+			} );
+		}
 		
 		var oMenuButtonCfg = {
 			id: sButtonId,

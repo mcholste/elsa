@@ -67,7 +67,7 @@ YAHOO.ELSA.main = function () {
 		var oDialog=null;
 		
 		YAHOO.ELSA.formParams = formParams;
-		YAHOO.ELSA.formParams.classIdMap = formParams['classes'];
+		YAHOO.ELSA.formParams.classIdMap = formParams['classes'] || {};
 		YAHOO.ELSA.formParams.classIdMap['0'] = 'ALL';
 		
 		var oSubmitButtonConfig = { 
