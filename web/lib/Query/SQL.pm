@@ -293,8 +293,11 @@ sub _get_select_clause {
 			my $field = $self->_search_field($self->groupby, $class_id);
 			if ($self->_is_meta($self->groupby, $class_id)){
 				$field = $self->_attr($self->groupby, $class_id);
+				push @groupby_attr_clause, '1=1, ' . $field;
 			}
-			push @groupby_attr_clause, sprintf('class_id=%d, ' . $field, $class_id);
+			else {
+				push @groupby_attr_clause, sprintf('class_id=%d, ' . $field, $class_id);
+			}
 		}
 		my $groupby_attr = join(',', map { 'IF(' . $_ } @groupby_attr_clause) . ',id' . join('', map { ')' } @groupby_attr_clause);
 		return {
@@ -339,11 +342,15 @@ sub _get_where_clause {
 						$field = $self->_attr($hash->{field}, $class_id);
 					}
 					if ($field eq 'class_id'){
+						if ($class_id == 0){
+							push @field_clauses, '(1=1)';
+							next;
+						}
 						push @field_clauses, '(class_id=?)';
 						push @values, $self->_value($hash, $class_id);
 					}
 					elsif ($field eq 'host_id'){
-						push @field_clauses, '(host_id=?)';
+						push @field_clauses, '(host_id' . $hash->{op} . '?)';
 						push @values, $self->_value($hash, $class_id);
 					}
 					elsif ($field eq 'program_id'){
@@ -351,7 +358,7 @@ sub _get_where_clause {
 						push @values, $self->_value($hash, $class_id);
 					}
 					elsif ($self->_is_int_field($hash->{field}, $class_id)){
-						push @field_clauses, '(class_id=? AND ' . $field . '=?)';
+						push @field_clauses, '(class_id=? AND ' . $field . $hash->{op} . '?)';
 						push @values, $class_id, $self->_value($hash, $class_id);
 					}
 					else {
