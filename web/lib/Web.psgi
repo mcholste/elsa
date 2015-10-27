@@ -11,10 +11,9 @@ use Controller;
 use Controller::Charts;
 use Controller::Peers;
 use View;
-#use Web::Query;
 use View::API;
-use View::GoogleDatasource;
-use View::GoogleDashboard;
+use View::Datasource;
+use View::Dashboard;
 use View::Mobile;
 
 my $config_file = '/etc/elsa_web.conf';
@@ -147,7 +146,9 @@ builder {
 	$ENV{PATH_INFO} = $ENV{REQUEST_URI}; #mod_rewrite will mangle PATH_INFO, so we'll set this manually here in case it's being used
 	enable 'XForwardedFor';
 	enable 'NoMultipleSlashes';
-	enable 'Static', path => qr{^/?inc/}, root => $static_root;
+	enable 'Static', path => qr{^/*inc\/.*\.js}, root => $static_root, content_type => 'application/javascript; charset=utf-8;';
+	enable 'Static', path => qr{^/*inc\/.*\.css}, root => $static_root, content_type => 'text/css; charset=utf-8;';
+	enable 'Static', path => qr{^/*inc\/.*\.(?!:js|css)}, root => $static_root;
 	enable 'CrossOrigin', origins => '*', methods => '*', headers => '*';
 	enable match_if all( path('!', qr!^/API/!) ), 'Session', store => 'File';
 	unless ($controller->conf->get('auth/method') eq 'none'){
@@ -162,8 +163,8 @@ builder {
 		mount '/API' => View::API->new(controller => $peers_controller)->to_app;
 		mount '/favicon.ico' => sub { return [ 200, [ 'Content-Type' => 'text/plain' ], [ '' ] ]; };
 		mount '/Query' => View->new(controller => $controller)->to_app;
-		mount '/datasource' => View::GoogleDatasource->new(controller => $charts_controller)->to_app;
-		mount '/dashboard' => View::GoogleDashboard->new(controller => $charts_controller)->to_app;
+		mount '/datasource' => View::Datasource->new(controller => $charts_controller)->to_app;
+		mount '/dashboard' => View::Dashboard->new(controller => $charts_controller)->to_app;
 		mount '/Charts' => View->new(controller => $charts_controller)->to_app;
 		mount '/m' => View::Mobile->new(controller => $controller)->to_app;
 		mount '/' => View->new(controller => $controller)->to_app;

@@ -1,4 +1,4 @@
-package View::GoogleDatasource;
+package View::Datasource;
 use Moose;
 extends 'View';
 use Data::Dumper;
@@ -6,8 +6,6 @@ use Plack::Request;
 use Plack::Session;
 use Encode;
 use Scalar::Util;
-use Data::Google::Visualization::DataSource;
-use Data::Google::Visualization::DataTable;
 use DateTime;
 use AnyEvent;
 use Try::Tiny;
@@ -15,18 +13,40 @@ use Ouch qw(:trytiny);
 
 with 'Fields';
 
+sub workaroundNaN {
+	my $val = shift;
+	if (ref $val eq 'ARRAY' or reftype $val eq 'ARRAY'){
+		foreach (@$val){
+			$_ = workaroundNaN($_);
+		}
+		return $val;
+	}
+	elsif (ref $val eq 'HASH' or reftype $val eq 'HASH'){
+		foreach my $key (keys %$val){
+			$val->{$key} = workaroundNaN($val->{$key});
+		}
+		return $val;
+	}
+	else {
+		if ($val eq '-inf' or $val eq '+inf'){
+			print "Setting $val to undef\n";
+			return undef;
+		}
+		else {
+			print "leaving $val alone\n";
+			return $val;
+		}
+	}
+}
+
 sub call {
 	my ($self, $env) = @_;
     
 	my $req = Plack::Request->new($env);
 	my $args = $req->parameters->as_hashref;
-	my $datasource = Data::Google::Visualization::DataSource->new({
-	    tqx => $args->{tqx},
-	    xda => ($req->header('X-DataSource-Auth') || undef)
-	});
 	my $res = $req->new_response(200); # new Plack::Response
-	my $ret;
 	my $query_args;
+	my @warnings;
 	# If we don't have a nonblocking web server (Apache), we need to have an overarching blocking recv
 	my $cv;
 	if (not $env->{'psgi.nonblocking'}){
@@ -78,8 +98,11 @@ sub call {
 					die($self->controller->last_error);
 				}
 			
-				my $datatable = Data::Google::Visualization::DataTable->new();
-				
+				my $datatable = {
+					columns => [],
+					rows => []
+				};
+								
 				if (ref($ret) and $ret->{code}){
 					throw($ret->{code}, $ret->{message}, $ret->{data});
 				}
@@ -93,14 +116,17 @@ sub call {
 					$self->controller->log->debug('groupby: ' . Dumper($groupby));
 					my $label = $ret->meta_params->{comment} ? $ret->meta_params->{comment} : 'count'; 
 					if ($Fields::Time_values->{$groupby}){
-						$datatable->add_columns({id => $groupby, label => $groupby, type => 'datetime'}, {id => 'value' . $value_id++, label => $label, type => 'number'});
+						#$datatable->add_columns({id => $groupby, label => $groupby, type => 'datetime'}, {id => 'value' . $value_id++, label => $label, type => 'number'});
+						push @{ $datatable->{columns} }, {id => $groupby, label => $groupby, type => 'datetime'}, {id => 'value' . $value_id++, label => $label, type => 'number'};
 					}
 					else {
 						if ($query_args->{query_meta_params}->{type} and $query_args->{query_meta_params}->{type} =~ /geo/i){
-							$datatable->add_columns({id => $groupby, label => $groupby, type => 'string'}, {id => 'value' . $value_id++, label => $label, type => 'number'});
+							#$datatable->add_columns({id => $groupby, label => $groupby, type => 'string'}, {id => 'value' . $value_id++, label => $label, type => 'number'});
+							push @{ $datatable->{columns} }, {id => $groupby, label => $groupby, type => 'string'}, {id => 'value' . $value_id++, label => $label, type => 'number'};
 						}
 						else {
-							$datatable->add_columns({id => $groupby, label => $groupby, type => 'string'}, {id => 'value' . $value_id++, label => $label, type => 'number'});
+							#$datatable->add_columns({id => $groupby, label => $groupby, type => 'string'}, {id => 'value' . $value_id++, label => $label, type => 'number'});
+							push @{ $datatable->{columns} }, {id => $groupby, label => $groupby, type => 'string'}, {id => 'value' . $value_id++, label => $label, type => 'number'};
 						}
 					}
 					
@@ -110,7 +136,8 @@ sub call {
 						my $tz = DateTime::TimeZone->new( name => "local");
 						foreach my $row (@{ $ret->results->results->{$groupby} }){
 							$self->controller->log->debug('row: ' . Dumper($row));
-							$datatable->add_rows([ { v => DateTime->from_epoch(epoch => $row->{'intval'}, time_zone => $tz) }, { v => $row->{_count} } ]);
+							#$datatable->add_rows([ { v => DateTime->from_epoch(epoch => $row->{'intval'}, time_zone => $tz) }, { v => $row->{_count} } ]);
+							push @{ $datatable->{rows} }, [ DateTime->from_epoch(epoch => $row->{'intval'}, time_zone => $tz)->epoch(), $row->{_count} ];
 						}
 					}
 					else {
@@ -125,13 +152,15 @@ sub call {
 								elsif ($row->{_groupby} =~ /cc=(\w{2})/i){
 									$cc = $1;
 								}
-								$datatable->add_rows([ { v => $cc }, { v => $row->{_count} } ]);
+								#$datatable->add_rows([ { v => $cc }, { v => $row->{_count} } ]);
+								push @{ $datatable->{rows} }, [$cc, $row->{_count} ];
 							}
 						}
 						else {
 							foreach my $row (@{ $ret->results->results->{$groupby} }){
 								$self->controller->log->debug('row: ' . Dumper($row));
-								$datatable->add_rows([ { v => $row->{_groupby} }, { v => $row->{_count} } ]);
+								#$datatable->add_rows([ { v => $row->{_groupby} }, { v => $row->{_count} } ]);
+								push @{ $datatable->{rows} }, [ $row->{_groupby}, $row->{_count} ];
 							}
 						}
 					}
@@ -143,22 +172,32 @@ sub call {
 					$self->controller->log->error('Unknown error with ret: ' . Dumper($ret));
 					throw(500, 'Internal error');
 				}
-				$datasource->datatable($datatable);
+				#$datasource->datatable($datatable);
 				
 				if (ref($ret) and ref($ret) eq 'HASH'){
 					if ($self->controller->has_warnings){
 						$self->controller->log->debug('warnings: ' . Dumper($self->controller->warnings));
-						$datasource->add_message({type => 'warning', reason => 'data_truncated', message => join(' ', @{ $self->controller->warnings })});
+						#$datasource->add_message({type => 'warning', reason => 'data_truncated', message => join(' ', @{ $self->controller->warnings })});
+						push @warnings, {type => 'warning', reason => 'data_truncated', message => join(' ', @{ $self->controller->warnings })};
 					}
 				}
 				elsif (ref($ret) and blessed($ret) and $ret->can('add_warning') and $self->controller->has_warnings){
 					$self->controller->log->debug('warnings: ' . Dumper($self->controller->warnings));
-					$datasource->add_message({type => 'warning', reason => 'data_truncated', message => join(' ', @{ $self->controller->warnings })});
+					#$datasource->add_message({type => 'warning', reason => 'data_truncated', message => join(' ', @{ $self->controller->warnings })});
+					push @warnings, {type => 'warning', reason => 'data_truncated', message => join(' ', @{ $self->controller->warnings })};
 				}
-				my ($headers, $body) = $datasource->serialize;
-				$res->headers(@$headers);
-				$res->body([encode_utf8($body)]);
-				$self->controller->log->debug('headers: ' . Dumper(@$headers));
+				#my ($headers, $body) = $datasource->serialize;
+				if (@warnings){
+					$datatable->{warnings} = [ @warnings ];
+				}
+				my @headers = ('Connection' => 'Keep-alive', 'Content-Type' => 'text/javascript');
+				$res->headers(\@headers);
+				print Dumper($datatable);
+				#$datatable = workaroundNaN($datatable);
+				my $body = $self->controller->json->encode($datatable);
+				#$res->body([encode_utf8($body)]);
+				$res->body([$body]);
+				$self->controller->log->debug('headers: ' . Dumper(@headers));
 				$self->controller->log->debug('body: ' . Dumper($body));
 				
 				$write->($res->finalize());
@@ -168,10 +207,15 @@ sub call {
 		catch {
 			my $e = shift;
 			$self->controller->log->error($e);
-			$datasource->add_message({type => 'error', reason => 'access_denied', message => $e});
-			my ($headers, $body) = $datasource->serialize;
-			$res->headers(@$headers);
-			$res->body([encode_utf8($body)]);
+			#$datasource->add_message({type => 'error', reason => 'access_denied', message => $e});
+			#my ($headers, $body) = $datasource->serialize;
+			#$res->headers(@$headers);
+			push @warnings, {type => 'error', reason => 'access_denied', message => $e};
+			my @headers = ('Connection' => 'Keep-alive', 'Content-Type' => 'text/javascript');
+			$res->headers(\@headers);
+			my $body = $self->controller->json->encode({ warnings => \@warnings});
+			#$res->body([encode_utf8($body)]);
+			$res->body([$body]);
 			$write->($res->finalize());
 			$cv and $cv->send;
 		};

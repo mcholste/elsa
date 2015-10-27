@@ -487,7 +487,7 @@ sub _get_match_str {
 	
 	# Verify we'll still have something to search on
 	my $chars_indexed = (values %{ $self->schemas->{$group_key} })[0]->{schema}->{chars_indexed};
-	$chars_indexed = join('', keys %$chars_indexed);
+	$chars_indexed = join('', sort keys %$chars_indexed);
 	# Dash in the middle of $chars_indexed string is causing regex problems on new Perls (ie. Ubuntu 14.04)
 	$chars_indexed =~ s/-//g;
 	$chars_indexed .= "-";

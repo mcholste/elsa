@@ -134,13 +134,13 @@ YAHOO.ELSA.Dashboard.prototype.edit = function(){
 		oPanel.panel.render();
 		
 		var oElCreate = document.createElement('a');
-	    oElCreate.href = '#';
-	    oElCreate.innerHTML = 'Create new chart';
-	    oPanel.panel.body.appendChild(oElCreate);
-	    var oElCreateEl = new YAHOO.util.Element(oElCreate);
-	    oElCreateEl.on('click', function(){
-	    	logger.log('creating dashboard');
-	    	var handleSubmit = function(p_sType, p_oDialog){
+		oElCreate.href = '#';
+		oElCreate.innerHTML = 'Create new chart';
+		oPanel.panel.body.appendChild(oElCreate);
+		var oElCreateEl = new YAHOO.util.Element(oElCreate);
+		oElCreateEl.on('click', function(){
+			logger.log('creating dashboard');
+			var handleSubmit = function(p_sType, p_oDialog){
 				this.submit();
 			};
 			var handleCancel = function(){
@@ -236,7 +236,7 @@ YAHOO.ELSA.Dashboard.prototype.edit = function(){
 			});
 			oCreatePanel.panel.render();
 			oCreatePanel.panel.show();
-	    });
+		});
 		
 		var deleteChart = function(p_sType, p_aArgs, p_a){
 			var p_oRecord = p_a[0], p_oDataTable = p_a[1];
@@ -294,26 +294,26 @@ YAHOO.ELSA.Dashboard.prototype.edit = function(){
 			{ key:"y", label:"Y", formatter:YAHOO.widget.DataTable.formatNumber, sortable:true }
 		];
 		var oPaginator = new YAHOO.widget.Paginator({
-		    pageLinks          : 10,
-	        rowsPerPage        : 5,
-	        rowsPerPageOptions : [5,20],
-	        template           : "{CurrentPageReport} {PreviousPageLink} {PageLinks} {NextPageLink} {RowsPerPageDropdown}",
-	        pageReportTemplate : "<strong>Records: {totalRecords} </strong> "
-	    });
-	    
-	    var oDataTableCfg = {
-	    	//initialRequest: 'startIndex=0&results=5',
-	    	//initialLoad: true,
-	    	//dynamicData: true,
-	    	sortedBy : {key:"chart_id", dir:YAHOO.widget.DataTable.CLASS_DESC},
-	    	paginator: oPaginator
-	    };
-	    
-	    var oElDiv = document.createElement('div');
+			pageLinks          : 10,
+			rowsPerPage        : 5,
+			rowsPerPageOptions : [5,20],
+			template           : "{CurrentPageReport} {PreviousPageLink} {PageLinks} {NextPageLink} {RowsPerPageDropdown}",
+			pageReportTemplate : "<strong>Records: {totalRecords} </strong> "
+		});
+		
+		var oDataTableCfg = {
+			//initialRequest: 'startIndex=0&results=5',
+			//initialLoad: true,
+			//dynamicData: true,
+			sortedBy : {key:"chart_id", dir:YAHOO.widget.DataTable.CLASS_DESC},
+			paginator: oPaginator
+		};
+		
+		var oElDiv = document.createElement('div');
 		oElDiv.id = 'charts_dt';
 		oPanel.panel.body.appendChild(oElDiv);
-	    
-	    try {	
+		
+		try {	
 			this.dataTable = new YAHOO.widget.DataTable(oElDiv,	oColumnDefs, oChartsDataSource, oDataTableCfg);
 			this.dataTable.handleDataReturnPayload = function(oRequest, oResponse, oPayload){
 				oPayload.totalRecords = oResponse.meta.totalRecords;
@@ -475,12 +475,12 @@ YAHOO.ELSA.Dashboard.prototype.addChart = function(p_oEvent, p_Obj, p_bAddBefore
 			else {
 				// adding to an existing row
 				oSelf.rows[p_iRowId].charts.push(oNewChart);
-        var charts = oSelf.rows[p_iRowId].charts;
-        for(var i = 0; i < charts.length; ++i) {
-          if (charts[i].chart_id == oNewChart.chart_id) continue;
-          var chartObj = oSelf.charts[ charts[i].chart_id ];
-          chartObj.redraw();
-        }
+		var charts = oSelf.rows[p_iRowId].charts;
+		for(var i = 0; i < charts.length; ++i) {
+		  if (charts[i].chart_id == oNewChart.chart_id) continue;
+		  var chartObj = oSelf.charts[ charts[i].chart_id ];
+		  chartObj.redraw();
+		}
 			}
 			
 			var oElTd = document.createElement('td');
@@ -674,6 +674,7 @@ YAHOO.ELSA.Chart = function(p_oArgs, p_oContainer, p_oDashboard){
 	if (YAHOO.ELSA.editCharts){
 		var oElEditEl = new YAHOO.util.Element(this.edit_el);
 		oElEditEl.addClass('hiddenElement');
+		oElEditEl.setStyle('padding-bottom', '26px');
 		
 		var oElEditChart = document.createElement('span');
 		var sButtonId = "chart_edit_type_" + this.id;
@@ -895,20 +896,27 @@ YAHOO.ELSA.Chart.prototype.sendQuery = function(p_iQueryNum, p_bRedraw){
 	this.reqStr = '../datasource/?tqx=reqId:' + sReqId
 		+ ';out:json&q=' + encodeURIComponent(JSON.stringify(oQuery));
 	logger.log('sReqId: ' + sReqId + ', reqStr: ' + this.reqStr);
-	var oDSQuery = new google.visualization.Query(this.reqStr);
-	// Disable errors showing up on the chart
-	google.visualization.errors.addError = function(){ logger.log('error: ', arguments); };
+	
 	var oSelf = this;
 	
 	var fnStoreResult = function(p_oResponse){
+		logger.log('p_oResponse', p_oResponse);
 		logger.log('result back for ' + sReqId + ' with label ' + oQuery.label);
-		if (p_oResponse.isError()){
-			logger.log('FAIL: ' + p_oResponse.getMessage() + ' ' + p_oResponse.getDetailedMessage());
-			YAHOO.ELSA.Error(p_oResponse.getMessage() + ' ' + p_oResponse.getDetailedMessage());
+		var oResult;
+		try {
+			oResult = JSON.parse(p_oResponse.responseText);
+		} catch (e){
+			logger.log('Failed to parse JSON from ', p_oResponse.responseText);
+			YAHOO.ELSA.Error('Failed to parse JSON');
+			return;
+		}
+		
+		if (typeof(oResult['warnings']) !== 'undefined'){
+			logger.log('FAIL: ', oResult);
+			YAHOO.ELSA.Error(oResult['warnings'][0].message.message);
 			return;
 		}
 				
-		
 		// Check to see if any of the queries are time-based
 		var sTime = false;
 		for (var i in oSelf.queries){
@@ -944,29 +952,34 @@ YAHOO.ELSA.Chart.prototype.sendQuery = function(p_iQueryNum, p_bRedraw){
 		
 		
 		if (oSelf.dataTable){
-			oSelf.mergeDataTables(p_oResponse.getDataTable(), oQuery.label);
-			oSelf.dataTable.setColumnLabel((oSelf.dataTable.getNumberOfColumns() - 1), oQuery.label);
+			//oSelf.mergeDataTables(p_oResponse.getDataTable(), oQuery.label);
+			oSelf.mergeDataTables(oResult, oQuery.label);
+			//oSelf.dataTable.setColumnLabel((oSelf.dataTable.getNumberOfColumns() - 1), oQuery.label);
 		}
 		else {
-			oSelf.dataTable = p_oResponse.getDataTable();
-			logger.log('starting with first data col label: ' + oSelf.dataTable.getColumnLabel(1));
+			//oSelf.dataTable = p_oResponse.getDataTable();
+			oSelf.dataTable = oResult;
+			//logger.log('starting with first data col label: ' + oSelf.dataTable.getColumnLabel(1));
+			logger.log('starting with first data col label: ' + oSelf.dataTable.columns[0].label);
 		}
 		
-		for (var i = 0; i < oSelf.dataTable.getNumberOfColumns(); i++){
-			logger.log('now label: ', oSelf.dataTable.getColumnLabel(i));
-		}
+		// for (var i = 0; i < oSelf.dataTable.getNumberOfColumns(); i++){
+		// 	logger.log('now label: ', oSelf.dataTable.getColumnLabel(i));
+		// }
 		
 		if (oSelf.group){
-			if (typeof(google.visualization.data[oSelf.group]) != 'undefined'){
-				oSelf.dataTable = google.visualization.data.group(oSelf.dataTable, [0], 
-				[{'column': 1, 'aggregation': google.visualization.data[oSelf.group], 'type': 'number'}]);
-			}
-			else {
-				logger.log('invalid group: ' + oSelf.group);
-			}
+			YAHOO.ELSA.Error('Not yet configured to handle group: ' + oSelf.group);
+			// if (typeof(google.visualization.data[oSelf.group]) != 'undefined'){
+			// 	oSelf.dataTable = google.visualization.data.group(oSelf.dataTable, [0], 
+			// 	[{'column': 1, 'aggregation': google.visualization.data[oSelf.group], 'type': 'number'}]);
+			// }
+			// else {
+			// 	logger.log('invalid group: ' + oSelf.group);
+			// }
 		}
 		
-		if (oSelf.dataTable.getDistinctValues(0).length == 0){
+		//if (oSelf.dataTable.getDistinctValues(0).length == 0){
+		if (!oSelf.dataTable.columns.length){
 			logger.log('No data found in dataTable column range, not drawing chart.');
 			oSelf.dashboard_el.innerText = 'No Data Available';
 		}
@@ -996,7 +1009,9 @@ YAHOO.ELSA.Chart.prototype.sendQuery = function(p_iQueryNum, p_bRedraw){
 	}
 		
 	this.container_el.addClass('loading');
-	oDSQuery.send(fnStoreResult);
+	// oDSQuery.send(fnStoreResult);
+	var request = YAHOO.util.Connect.asyncRequest('GET', this.reqStr, 
+		{ success:fnStoreResult, failure:fnStoreResult });
 	this.queries_sent++;
 	
 	logger.log('sent ' + (Number(p_iQueryNum) + 1) + ' of ' + oSelf.queries.length);
@@ -1005,36 +1020,59 @@ YAHOO.ELSA.Chart.prototype.sendQuery = function(p_iQueryNum, p_bRedraw){
 YAHOO.ELSA.Chart.prototype.mergeDataTables = function(p_oAddTable, p_sLabel){
 	logger.log('merging ' + p_sLabel);
 	
-	this.dataTable.addColumn('number', p_sLabel, p_oAddTable.getColumnId(1));
+	//this.dataTable.addColumn('number', p_sLabel, p_oAddTable.getColumnId(1));
+	this.dataTable.columns.push({type: 'number', label: p_sLabel, id: null});
 	
 	try {
 		var iNumAdded = 0;
-		var iNumCols = this.dataTable.getNumberOfColumns();
+		//var iNumCols = this.dataTable.getNumberOfColumns();
+		var iNumCols = this.dataTable.columns.length;
 		// For each time value in our add table, add to the appropriate bucket in the existing table
-		for (var i = 0; i < p_oAddTable.getNumberOfRows(); i++){
-			var x = p_oAddTable.getValue(i, 0);
-			var y = p_oAddTable.getValue(i, 1);
+		// for (var i = 0; i < p_oAddTable.getNumberOfRows(); i++){
+		for (var i = 0, len = p_oAddTable.rows.length; i < len; i++){
+			// var x = p_oAddTable.getValue(i, 0);
+			// var y = p_oAddTable.getValue(i, 1);
+			var x = p_oAddTable.rows[i][0];
+			var y = p_oAddTable.rows[i][1];
 			
-			var aRowsForUpdate;
-			aRowsForUpdate = this.dataTable.getFilteredRows([{ column:0, value:x}]);
-			
-			if (aRowsForUpdate.length){
-				this.dataTable.setCell(aRowsForUpdate[0], (iNumCols - 1), y);
-				//logger.log('set cell ' + aRowsForUpdate[0] + ' ' + (iNumCols - 1) + ' ' + y);
-			}
-			else {
-				//logger.log('no date for ', oDate);
-				var aNewRow = [x];
-				for (var j = 1; j < (iNumCols - 1); j++){
-					aNewRow.push(null);
+			// Check to see if any x values match and update accordingly, otherwise, tack on a new row
+			var iNumUpdated = 0;
+			for (var j = 0, jlen = this.dataTable.rows.length - 1; j < jlen; j++){
+				if (this.dataTable.rows[j][0] == x){
+					// Update all y values with this x value
+					for (var k = 1, klen = p_oAddTable.rows[i].length; k < klen; k++){
+						this.dataTable.rows[j][k] = p_oAddTable.rows[i][k];
+					}
+					iNumUpdated++;
 				}
-				aNewRow.push(y);
-				this.dataTable.addRow(aNewRow);
+			}
+			if (!iNumUpdated){
+				this.dataTable.rows.push(p_oAddTable.rows[i]);
 				iNumAdded++;
 			}
+			// var aRowsForUpdate;
+			// aRowsForUpdate = this.dataTable.getFilteredRows([{ column:0, value:x}]);
+			
+			// if (aRowsForUpdate.length){
+			// 	this.dataTable.setCell(aRowsForUpdate[0], (iNumCols - 1), y);
+			// 	//logger.log('set cell ' + aRowsForUpdate[0] + ' ' + (iNumCols - 1) + ' ' + y);
+			// }
+			// else {
+			// 	//logger.log('no date for ', oDate);
+			// 	var aNewRow = [x];
+			// 	for (var j = 1; j < (iNumCols - 1); j++){
+			// 		aNewRow.push(null);
+			// 	}
+			// 	aNewRow.push(y);
+			// 	this.dataTable.addRow(aNewRow);
+			// 	iNumAdded++;
+			// }
 		}
 		if (iNumAdded){
-			this.dataTable.sort({column:0});
+			// this.dataTable.sort({column:0});
+			this.dataTable.rows = this.dataTable.rows.sort(function(a, b){
+				return a[0] < b[0] ? -1 : 1;
+			});
 		}
 	} catch(e){ logger.log('Error merging tables', e); }
 }
@@ -1043,12 +1081,17 @@ YAHOO.ELSA.Chart.prototype.draw = function(){
 	if (this.isTimeChart){
 		logger.log('timechart');
 		this.makeTimeChart();
+		//logger.log('todo: makeTimeChart');
 	}
 	else if (this.type == 'GeoChart'){
 		this.makeGeoChart();
+		//logger.log('todo: makeGeoChart');
 	}
 	else {
-		this.dataTable.sort({column:1, desc:true});
+		// this.dataTable.sort({column:1, desc:true});
+		this.dataTable.rows = this.dataTable.rows.sort(function(a, b){
+			return a[1] > b[1] ? -1 : 1;
+		});
 		this.makeSimpleChart();
 	}
 }
@@ -1069,44 +1112,44 @@ YAHOO.ELSA.Chart.prototype.redraw = function(){
 	logger.log('redrawn');
 }
 	
-YAHOO.ELSA.Chart.prototype.selectHandler = function(){
-	var oSelection = this.wrapper.getChart().getSelection();
-	var oDataTable = this.wrapper.getDataTable();
-	logger.log('select', oSelection);
+// YAHOO.ELSA.Chart.prototype.selectHandler = function(){
+// 	var oSelection = this.wrapper.getChart().getSelection();
+// 	var oDataTable = this.wrapper.getDataTable();
+// 	logger.log('select', oSelection);
 			
-	var message = '';
-	  for (var i = 0; i < oSelection.length; i++) {
-	    var item = oSelection[i];
-	    if (item.row != null && item.column != null) {
-	      var str = oDataTable.getFormattedValue(item.row, item.column);
-	      message += '{row:' + item.row + ',column:' + item.column + '} = ' + str;
-	      logger.log('label', oDataTable.getColumnLabel(item.column));
-	      logger.log('properties', oDataTable.getColumnProperties(item.column));
-	      logger.log('value', oDataTable.getColumnProperty(item.column, 'value'));
-	      logger.log('getProperties', oDataTable.getProperties(item.row, item.column));
-	      if (this.isTimeChart){
-	      	var oStart = oDataTable.getValue(item.row, 0);
-	      	var iOffset = YAHOO.ELSA.timeTypes[this.isTimeChart];
-	      	var oEnd = new Date(oStart.getTime() + (iOffset * 1000));
-	      	logger.log('oStart ' + oStart + ', oEnd ' + oEnd);
-	      	var sNewLocation = location.pathname + '?start=' + getISODateTime(oStart) + '&end=' + getISODateTime(oEnd) 
-	      		+ '&' + YAHOO.ELSA.timeTypeDrillDowns[this.isTimeChart];
-	      	logger.log('sNewLocation', sNewLocation);
-	      	window.location = sNewLocation;
-	      }
-	    } else if (item.row != null) {
-	      var str = oDataTable.getFormattedValue(item.row, 0);
-	      message += '{row:' + item.row + ', (no column, showing first)} = ' + str;
-	    } else if (item.column != null) {
-	      var str = oDataTable.getFormattedValue(0, item.column);
-	      message += '{(no row, showing first), column:' + item.column + '} = ' + str;
-	    }
-	  }
-	  if (message == '') {
-	    message = 'nothing';
-	  }
-	  logger.log(message);
-}
+// 	var message = '';
+// 	  for (var i = 0; i < oSelection.length; i++) {
+// 	    var item = oSelection[i];
+// 	    if (item.row != null && item.column != null) {
+// 	      var str = oDataTable.getFormattedValue(item.row, item.column);
+// 	      message += '{row:' + item.row + ',column:' + item.column + '} = ' + str;
+// 	      logger.log('label', oDataTable.getColumnLabel(item.column));
+// 	      logger.log('properties', oDataTable.getColumnProperties(item.column));
+// 	      logger.log('value', oDataTable.getColumnProperty(item.column, 'value'));
+// 	      logger.log('getProperties', oDataTable.getProperties(item.row, item.column));
+// 	      if (this.isTimeChart){
+// 	      	var oStart = oDataTable.getValue(item.row, 0);
+// 	      	var iOffset = YAHOO.ELSA.timeTypes[this.isTimeChart];
+// 	      	var oEnd = new Date(oStart.getTime() + (iOffset * 1000));
+// 	      	logger.log('oStart ' + oStart + ', oEnd ' + oEnd);
+// 	      	var sNewLocation = location.pathname + '?start=' + getISODateTime(oStart) + '&end=' + getISODateTime(oEnd) 
+// 	      		+ '&' + YAHOO.ELSA.timeTypeDrillDowns[this.isTimeChart];
+// 	      	logger.log('sNewLocation', sNewLocation);
+// 	      	window.location = sNewLocation;
+// 	      }
+// 	    } else if (item.row != null) {
+// 	      var str = oDataTable.getFormattedValue(item.row, 0);
+// 	      message += '{row:' + item.row + ', (no column, showing first)} = ' + str;
+// 	    } else if (item.column != null) {
+// 	      var str = oDataTable.getFormattedValue(0, item.column);
+// 	      message += '{(no row, showing first), column:' + item.column + '} = ' + str;
+// 	    }
+// 	  }
+// 	  if (message == '') {
+// 	    message = 'nothing';
+// 	  }
+// 	  logger.log(message);
+// }
 
 YAHOO.ELSA.Chart.prototype.getOptions = function(){
 	var oOptions = YAHOO.ELSA.chartOptions[this.type];
@@ -1124,10 +1167,13 @@ YAHOO.ELSA.Chart.prototype.makeSimpleChart = function(){
 	var data = [];
 	var i = 0;
 	var dt = this.dataTable;
-	var n = dt.getNumberOfRows();
+	// var n = dt.getNumberOfRows();
+	var n = dt.rows.length;
 	for(var i = 0; i < n; ++i) {
-		var label = dt.getValue(i, 0);
-		var value = dt.getValue(i, 1);
+		// var label = dt.getValue(i, 0);
+		// var value = dt.getValue(i, 1);
+		var label = dt.rows[i][0].v;
+		var value = dt.rows[i][1];
 		var thisColor = colorPalette[((paletteLength - ((i+6) % paletteLength)) - 1)];
 		data.push( {
 			label: label,
@@ -1136,13 +1182,15 @@ YAHOO.ELSA.Chart.prototype.makeSimpleChart = function(){
 			highlight: thisColor[3]
 		} );
 	}
+	logger.log('created data', data, 'from', dt);
 	var chartDiv = document.createElement('div');
 	var canvasEl = document.createElement('canvas');
 	chartDiv.appendChild(canvasEl);
 	var ctx = canvasEl.getContext("2d");
 	var hElem = document.createElement('h3');
 	var title = this.options && this.options.title;
-	var label = dt.getColumnLabel(0) || this.queries[0].query_string.replace(/.*groupby:/, '').ucfirst();
+	// var label = dt.getColumnLabel(0) || this.queries[0].query_string.replace(/.*groupby:/, '').ucfirst();
+	var label = dt.columns[0].label || this.queries[0].query_string.replace(/.*groupby:/, '').ucfirst();
 	if (!title) {
 		title = label + ' ' + YAHOO.ODE.Chart.getChartCode(this.type) + ' Chart';
 	}
@@ -1151,11 +1199,11 @@ YAHOO.ELSA.Chart.prototype.makeSimpleChart = function(){
 	this.chart_el.appendChild(hElem);
 	this.chart_el.appendChild(chartDiv);
 	var chartClass = 'dbchart';
-    var rCharts = this.dashboard.rows[this.y].charts.length;
-    var cdWidth = YAHOO.ELSA.dashboardParams.width / rCharts;
+	var rCharts = this.dashboard.rows[this.y].charts.length;
+	var cdWidth = YAHOO.ELSA.dashboardParams.width / rCharts;
 	this.chart_el.style.width = cdWidth + 'px';
 	this.chart_el.style.height = '258px';
-    logger.log("Row charts:"+rCharts+",cdWidth:"+cdWidth);
+	logger.log("Row charts:"+rCharts+",cdWidth:"+cdWidth);
 	if ('PieChart' == this.type || 'Doughnut' == this.type) {
 		chartClass = chartClass + ' pie-chart';
 		var legendDiv = document.createElement('div');
@@ -1220,11 +1268,11 @@ YAHOO.ELSA.Chart.prototype.makeSimpleChart = function(){
 		var opts = YAHOO.ODE.Chart.getSteps(ymax);
 		var legendDiv = document.createElement('div');
 		chartDiv.appendChild(legendDiv);
-        canvasEl.height = 225;
-        var cWidth = cdWidth - 150;
+		canvasEl.height = 225;
+		var cWidth = cdWidth - 150;
 		/*
-        if (20 + barCount * 6.8 > cWidth) {
-            cWidth = 20 + barCount * 6.8;
+		if (20 + barCount * 6.8 > cWidth) {
+			cWidth = 20 + barCount * 6.8;
 		}
 		*/
 		canvasEl.width = cWidth;
@@ -1282,371 +1330,182 @@ YAHOO.ELSA.Chart.prototype.makeSimpleChart = function(){
 			}
 		}, 50);
 	} else {
+		YAHOO.ELSA.Error('Unsupported chart type: ' + this.type);
+// 		this.wrapper = new google.visualization.ChartWrapper({
+// 			dataTable: this.dataTable,
+// 			containerId: this.chart_el,
+// 			chartType: this.type,
+// 			options: this.getOptions()
+// 		});
 
-		this.wrapper = new google.visualization.ChartWrapper({
-			dataTable: this.dataTable,
-			containerId: this.chart_el,
-			chartType: this.type,
-			options: this.getOptions()
-		});
+// 		var oSelf = this;
+// 		google.visualization.events.addListener(this.wrapper, 'ready', function(){
+// 			google.visualization.events.addListener(oSelf.wrapper.getChart(), 'select', function(){ oSelf.selectHandler() });
+// 		});
 
-		var oSelf = this;
-		google.visualization.events.addListener(this.wrapper, 'ready', function(){
-			google.visualization.events.addListener(oSelf.wrapper.getChart(), 'select', function(){ oSelf.selectHandler() });
-		});
+// 		this.wrapper.draw();
 
-		this.wrapper.draw();
+// 		if ('Table' == this.type) {
+// 			logger.log("TABLE CHART el:" + this.chart_el.id);
+// 			var tblODiv = this.chart_el.firstChild;
+// 			var tblIDiv = tblODiv.firstChild;
+// 			var btnDiv = this.chart_el.parentNode.firstChild;
+// 			btnDiv.style['margin-bottom'] = '15px';
+// 			logger.log("OUTER DIV: " + tblODiv.getAttribute('class'));
+// 			logger.log("INNER DIV: " + tblIDiv.getAttribute('class'));
+// 			setTimeout(function() {
+// 				tblODiv.style.width = cdWidth + 'px';
+// 				logger.log("Table Div Width:"+tblODiv.style.width);
+// 				if (tblODiv.offsetHeight > 245) {
+// 					tblODiv.style.height = '245px';
+// 					var sbWidth = 15;
+// 					if (typeof InstallTrigger !== 'undefined')
+// 						sbWidth += 5;
+// //					tblODiv.style.width = (tblODiv.offsetWidth + sbWidth)+'px';
+// 					tblODiv.style.overflow = 'auto';
+// 				}
+// 			}, 70);
+// 		}
 
-		if ('Table' == this.type) {
-			logger.log("TABLE CHART el:" + this.chart_el.id);
-			var tblODiv = this.chart_el.firstChild;
-			var tblIDiv = tblODiv.firstChild;
-			var btnDiv = this.chart_el.parentNode.firstChild;
-			btnDiv.style['margin-bottom'] = '15px';
-			logger.log("OUTER DIV: " + tblODiv.getAttribute('class'));
-			logger.log("INNER DIV: " + tblIDiv.getAttribute('class'));
-			setTimeout(function() {
-				tblODiv.style.width = cdWidth + 'px';
-				logger.log("Table Div Width:"+tblODiv.style.width);
-				if (tblODiv.offsetHeight > 245) {
-					tblODiv.style.height = '245px';
-					var sbWidth = 15;
-					if (typeof InstallTrigger !== 'undefined')
-						sbWidth += 5;
-//					tblODiv.style.width = (tblODiv.offsetWidth + sbWidth)+'px';
-					tblODiv.style.overflow = 'auto';
-				}
-			}, 70);
-		}
-
-		logger.log(this.wrapper);
+// 		logger.log(this.wrapper);
 	}
 	chartDiv.setAttribute('class', chartClass);
 }
 
 YAHOO.ELSA.Chart.prototype.makeGeoChart = function(){
-	this.wrapper = new google.visualization.ChartWrapper({
-		dataTable: this.dataTable,
-		containerId: this.chart_el,
-		chartType: this.type,
-		options: this.getOptions()
-	});
-	
 	var oSelf = this;
-	google.visualization.events.addListener(this.wrapper, 'ready', function(){
-		google.visualization.events.addListener(oSelf.wrapper.getChart(), 'regionClick', function(){ oSelf.selectHandler() });
-	});
-	this.wrapper.draw();
-}
-
-YAHOO.ELSA.Chart.prototype.makeChart = function(){
-	this.google_dashboard = new google.visualization.Dashboard(YAHOO.util.Dom.get(this.dashboard_el));
-		
-	var oRange = this.dataTable.getColumnRange(0);
-	logger.log('oRange', oRange);
-	logger.log('oRange', oRange.min);
-	logger.log('oRange', oRange.max);
-	logger.log('range diff: ' + (oRange.max - oRange.min));
-	var iStep = (oRange.max - oRange.min) / 10;
-	logger.log('iStep ' + iStep);
-	var oFirstStep = oRange.min + iStep;
 	
-	var aChartCols = [];
-	for (var i = 0; i < this.dataTable.getNumberOfColumns(); i++){
-		aChartCols.push(i);
+	var country_data = {};
+	var minOpacity = .05;
+	var min = Infinity, max = 0;
+	for (var i = 0, len = oSelf.dataTable.rows.length; i < len; i++){
+		var count = oSelf.dataTable.rows[i][1];
+		if (count > max) max = count;
+		if (count < min) min = count;
+		country_data[ oSelf.dataTable.rows[i][0] ] = count;
+	}
+	var sorted_countries = Object.keys(country_data).sort(function(a, b){
+		return country_data[a] > country_data[b] ? -1 : 1;
+	});
+
+	for (var country in country_data){
+		country_data[country] = {
+			opacity: country_data[country] / max,
+			count: country_data[country]
+		};
+		if (country_data[country] < (minOpacity + .05)){
+			country_data[country] = (minOpacity + .05);
+		}
 	}
 	
-	this.control = new google.visualization.ControlWrapper({
-		'controlType': 'ChartRangeFilter',
-		'containerId': this.control_el,
-		'options': {
-			// Filter by the date axis.
-			'filterColumnIndex': 0,
-			'ui': {
-				'chartType': 'LineChart',
-				'chartOptions': {
-					'chartArea': {'width': '90%'},
-					'hAxis': {'baselineColor': 'none'}
-				},
-				'chartView': {
-					'columns': aChartCols
-				},
-				'minRangeSize': iStep
-			}
-     	},
-		'state': {'range': {'start': oRange.min, 'end': oFirstStep}}
-	});
-	
-	this.wrapper = new google.visualization.ChartWrapper({
-		dataTable: this.dataTable,
-		containerId: this.chart_el,
-		chartType: this.type,
-		options: this.getOptions()
-	});
-	
-	var oSelf = this;
-	google.visualization.events.addListener(this.wrapper, 'ready', function(){
-		google.visualization.events.addListener(oSelf.wrapper.getChart(), 'regionClick', function(){ oSelf.selectHandler() });
-	});
-	this.google_dashboard.bind(this.control, this.wrapper);
-	this.google_dashboard.draw(this.dataTable);
-}
+	var oEl = new YAHOO.util.Element(oSelf.chart_el);
+	oEl.addClass('geo');
+	oEl.addClass('geowrapper');
+	var oDiv = document.createElement('div');
+	oSelf.chart_el.appendChild(oDiv);
+	var oElMap = new YAHOO.util.Element(oDiv);
+	oElMap.addClass('geomap');
 
-// This is a hack to deal with "maximum stack size exceeded" errors in Google Visualizations for big datatables
-YAHOO.ELSA.Chart.prototype.cloneChart = function(p_oWrapper){
-	var oNew = new google.visualization.ChartWrapper({
-		dataTable: p_oWrapper.getDataTable(),
-		chartType: p_oWrapper.getChartType(),
-		containerId: null,
-		options: p_oWrapper.getOptions()
-	});
+	var h1 = document.createElement('h1');
+	oDiv.appendChild(h1);
+	var oElh1 = new YAHOO.util.Element(h1);
 	
-	return oNew;
-}
+	var width = 960, height = 400;  // map width and height, matches (cutoff Antarctica)
+	var projection = d3.geo.equirectangular();
+	var path = d3.geo.path()  // create path generator function
+	.projection(projection);  // add our define projection to it
+
+	svg = d3.select('.geomap')
+	.append('svg')   // append a svg to our html div to hold our map
+	.attr('width', width)
+	.attr('height', height);
+
+	svg.append('defs').append('path')   // prepare some svg for outer container of svg elements
+	.datum({type: 'Sphere'})
+	.attr('id', 'sphere')
+	.attr('d', path); 
+
+	svg.selectAll('.country')   // select country objects (which don't exist yet)
+	.data(topojson.feature(topoData, topoData.objects.countries).features)  // bind data to these non-existent objects
+	.enter().append('path') // prepare data to be appended to paths
+	.attr('class', 'country') // give them a class for styling and access later
+	.attr('id', function(d) { return 'code_' + d.properties.id; }, true)  // give each a unique id for access later
+	.attr('d', path); // create them using the svg path generator defined above
+
+	d3.selectAll('.country')  // select all the countries
+	.attr('fill-opacity', function(d) {
+		if (typeof(country_data[d.properties.id]) !== 'undefined'){
+			return country_data[d.properties.id].opacity;
+		}
+		else {
+			return minOpacity;
+		}
+	})
+	.on('mouseover', function(d){
+		var text = d.properties.admin;
+		if (typeof(country_data[d.properties.id]) !== 'undefined'){
+			text += ' ' + oSelf.dataTable.columns[1].label + ' ' + country_data[d.properties.id].count;
+		}
+		d3.select('.geo h1').text(text);
+
+	});
+
+	var table = document.createElement('table');
+	var tbody = document.createElement('tbody');
+	for (var i = 0, len = sorted_countries.length; i < len; i++){
+		var tr = document.createElement('tr');
+		tbody.appendChild(tr);
+		var td = document.createElement('td');
+		td.appendChild(document.createTextNode(sorted_countries[i]));
+		tr.appendChild(td);
+		td = document.createElement('td');
+		td.appendChild(document.createTextNode(country_data[sorted_countries[i]].count));
+		tr.appendChild(td);
+		tbody.appendChild(tr);
+	}
+	table.appendChild(tbody);
+	oSelf.chart_el.appendChild(table);
+};
 
 YAHOO.ELSA.Chart.prototype.makeTimeChart = function(){
-	this.google_dashboard = new google.visualization.Dashboard(YAHOO.util.Dom.get(this.dashboard_el));
-	var oRange = this.dataTable.getColumnRange(0);
-	logger.log('oRange', oRange);
-	logger.log('oRange', oRange.min);
-	logger.log('oRange', oRange.max);
-	logger.log('range diff: ' + (oRange.max.getTime() - oRange.min.getTime()));
-	var iStep = (oRange.max.getTime() - oRange.min.getTime()) / 10;
-	logger.log('iStep ' + iStep);
-	var oFirstStep = new Date(oRange.min.getTime() + iStep);
-		
-	var aChartCols = [];
-	for (var i = 0; i < this.dataTable.getNumberOfColumns(); i++){
-		aChartCols.push(i);
+	var columns = [];
+	for (var i = 0, len = this.dataTable.columns.length; i < len; i++){
+		columns.push([this.dataTable.columns[i].label]);
 	}
-	this.control = new google.visualization.ControlWrapper({
-		'controlType': 'ChartRangeFilter',
-		'containerId': this.control_el,
-		'options': {
-			'width': this.getOptions().width,
-			// Filter by the date axis.
-			'filterColumnIndex': 0,
-			'ui': {
-				'chartType': 'LineChart',
-				'chartOptions': {
-					'chartArea': {'width': '90%'},
-					'hAxis': {'baselineColor': 'none'}
-				},
-				'chartView': {
-					'columns': aChartCols
-				},
-				'minRangeSize': iStep
+	for (var i = 0, len = this.dataTable.rows.length; i < len; i++){
+		for (var j = 0, jlen = this.dataTable.rows[i].length; j < jlen; j++){
+			if (j == 0){
+				columns[j].push(new Date(this.dataTable.rows[i][j] * 1000));
 			}
-     	},
-		'state': {'range': {'start': oRange.min, 'end': oFirstStep}}
-	});
-				
-	this.wrapper = new google.visualization.ChartWrapper({
-		dataTable: this.dataTable,
-		containerId: this.chart_el,
-		chartType: this.type,
-		options: this.getOptions()
-	});
-	this.wrapper.draw(); // draw this ahead of time so control gets the right width
-	
-	var oSelf = this;
-	google.visualization.events.addListener(this.wrapper, 'ready', function(){
-		google.visualization.events.addListener(oSelf.wrapper.getChart(), 'select', function(){ oSelf.selectHandler() });
-	});
-	
-	this.google_dashboard.bind(this.control, this.wrapper);
-	this.google_dashboard.draw(this.dataTable);
-}
-
-
-//YAHOO.ELSA.Chart.googleDataToYuiData = function(p_oGoogleData){
-//	p_oGoogleData = YAHOO.lang.JSON.parse(p_oGoogleData);
-//	
-//	var aFields = [];
-//	for (var i in p_oGoogleData.cols){
-//		if (!p_oGoogleData.cols[i].label){
-//			aFields.push('count');
-//		}
-//		else {
-//			aFields.push(p_oGoogleData.cols[i].label);
-//		}
-//	}
-//	
-//	var oData = {
-//		results: []
-//	}
-//	for (var i in p_oGoogleData.rows){
-//		var aRow = {};
-//		for (var j in p_oGoogleData.rows[i].c){
-//			//logger.log('col: ' + aFields[j] + ' val:' + p_oGoogleData.rows[i].c[j].v);
-//			aRow[ aFields[j] ] = p_oGoogleData.rows[i].c[j].v;
-//		}
-//		oData.results.push(aRow);
-//	}
-//	oData.totalRecords = oData.recordsReturned = oData.results.length;
-//	
-//	var oChartsDataSource = new YAHOO.util.DataSource(oData);
-//	oChartsDataSource.responseType = YAHOO.util.DataSource.TYPE_JSON;
-//	oChartsDataSource.responseSchema = {
-//		resultsList: 'results',
-//		fields: aFields,
-//		metaFields: {
-//			totalRecords: 'totalRecords',
-//			recordsReturned: 'recordsReturned'
-//		}
-//	};
-//	
-//	return oChartsDataSource;
-//	//return oData;
-//}
-
-/*
-YAHOO.ELSA.Chart.prototype.openEditor = function(p_oEvent){
-	logger.log("Edit chart called");
-	var handleCancel = function(){ this.hide() };
-	var oSelf = this;
-	var id = oSelf.id;
-	var sButtonId = "chart_edit_type_" + id;
-	var sId = "chart_type_hid_" + id;
-	var panelId = 'EditPanel#' + id;
-	var handleSubmit = function(){
-			var oInputEl = YAHOO.util.Dom.get(sId);
-			var cType = oInputEl.value;
-			logger.log("oSelf is a:"+typeof(oSelf));
-			var keys = [];
-			for(var k in oSelf) {
-				keys.push(k); //""+k+":"+oSelf[k]);
+			else {
+				columns[j].push(this.dataTable.rows[i][j]);
 			}
-			logger.log("oSelf="+keys.sort().join(", "));
-			logger.log("Chart type: " + cType);
-			var options = oSelf.getOptions();
-			logger.log("Options: " + options +
-				"JSON: " + JSON.stringify(options));
-			var oToUpdate = {
-				options: options,
-				type: cType
-			}
-			logger.log("init oToUpdate done. oSelf id="+oSelf.id);
-			var oPostData = {
-				chart_id: oSelf.id,
-				to_update: oToUpdate
-			}
-			YAHOO.ELSA.async('../Charts/update', function(){
-				logger.log('updated ok');
-			}, oPostData);
-			logger.log("Going to set chart type");
-			oSelf.type = cType;
-			logger.log("Donesetiing charttype to:"+oSelf.type);
-			oSelf.redraw();
-			var oEditPanel = YAHOO.ELSA.panels[panelId];
-			oEditPanel.panel.hide();
-	};
-	var oEditPanel = YAHOO.ELSA.Panel(panelId, {
-		buttons : [ {
-				text:"Submit",
-				handler: handleSubmit,
-				isDefault:true
-			},
-			{
-				text:"Cancel", 
-				handler:handleCancel
-			} ]
-	} );
-	var handleSuccess = function() { oEditPanel.panel.hide() }
-	oEditPanel.panel.callback = {
-		success: handleSuccess,
-		failure: YAHOO.ELSA.Error
-	};
-	oEditPanel.panel.renderEvent.subscribe(function(){
-		oEditPanel.panel.setBody('');
-		oEditPanel.panel.setHeader('Edit Chart Appearance');
-		oEditPanel.panel.bringToTop();
-		var sFormId = oEditPanel.panel.form.id;
-		var onMenuItemClick = function(p_sType, p_aArgs, p_oItem){
-			var sText = p_oItem.cfg.getProperty("text");
-			logger.log("Args: sText" + sText + "," + p_aArgs + "," + p_oItem);
-			// Set the label of the button to be our selection
-			var oAuthButton = YAHOO.widget.Button.getButton(sButtonId);
-			oAuthButton.set('label', sText);
-			var oFormEl = YAHOO.util.Dom.get(sFormId);
-			var oInputEl = YAHOO.util.Dom.get(sId);
-			logger.log("New value: " + p_oItem.value);
-			oInputEl.setAttribute('value', p_oItem.value);
-		};
-		var aMenu = [
-			{ text:'Line', value:'LineChart', onclick: { fn: onMenuItemClick } },
-			{ text:'Area', value:'AreaChart', onclick: { fn: onMenuItemClick } },
-			{ text:'Bar', value:'ColumnChart', onclick: { fn: onMenuItemClick } },
-			{ text:'Pie', value:'PieChart', onclick: { fn: onMenuItemClick } },
-			{ text:'Doughnut', value:'Doughnut', onclick: { fn: onMenuItemClick } },
-			{ text:'Table', value:'Table', onclick: { fn: onMenuItemClick } },
-			{ text:'Map', value:'GeoChart', onclick: { fn: onMenuItemClick } }
-		];
-			
-		var oMenuButtonCfg = {
-			id: sButtonId,
-			type: 'menu',
-			label: 'Chart Type',
-			name: sButtonId,
-			menu: aMenu
-		};
-
-		var oFormGridCfg = {
-			grid: [
-				[ {type:'text', args:'Type'}, {type:'widget', className:'Button', args:oMenuButtonCfg} ],
-			]
-		};
-
-		var oForm = new YAHOO.ELSA.Form(oEditPanel.panel.form, oFormGridCfg);
-		var ctLabel = new Object;
-		for(var i = 0; i < aMenu.length; ++i) {
-			ctLabel[aMenu[i].value] = aMenu[i].text;
 		}
-		var oAuthButton = YAHOO.widget.Button.getButton(sButtonId);
-		oAuthButton.set('label', ctLabel[oSelf.type]);
-		var oInputEl = document.createElement('input');
-		oInputEl.id = sId;
-		oInputEl.setAttribute('type', 'hidden');
-		oInputEl.setAttribute('name', 'chart_type');
-		oInputEl.setAttribute('value', 0);
-		oForm.form.appendChild(oInputEl);
-		
-	} );
-	oEditPanel.panel.render();
-	oEditPanel.panel.show();
-};
-	// Handler for the "Open Editor" button.
-	if (!this.editor){
-		this.editor = new google.visualization.ChartEditor();
-		var oSelf = this;
-		google.visualization.events.addListener(this.editor, 'ok', function() {
-			var oWrapper = oSelf.editor.getChartWrapper();
-			oWrapper.setContainerId(oSelf.wrapper.getContainerId());
-			oSelf.wrapper = oWrapper;
-			oSelf.wrapper.draw();
-			if (oSelf.google_dashboard){
-				oSelf.google_dashboard.bind(oSelf.control, oSelf.wrapper);
-				oSelf.google_dashboard.draw(oSelf.dataTable);
-			}
-			
-			var oToUpdate = {
-				options: oSelf.wrapper.getOptions(),
-				type: oSelf.wrapper.getChartType()
-			}
-			var oPostData = {
-				chart_id: oSelf.id,
-				to_update: oToUpdate
-			}
-			YAHOO.ELSA.async('../Charts/update', function(){
-				logger.log('updated ok');
-			}, oPostData);
-		});
 	}
-	var oCloneChart = this.cloneChart(this.wrapper);
-	this.editor.openDialog(oCloneChart);
-	
-}
-*/
+	var config = {
+		bindto: this.dashboard_el,
+		size: {
+			width: 1000
+		},
+		data:{
+			x: this.dataTable.columns[0].label,
+			columns: columns
+		},
+		axis: {
+			x: {
+				type: 'timeseries',
+				tick: {
+					format: '%Y-%m-%d'
+				}
+			}
+		},
+		subchart: {
+			show: true
+		}
+	};
+	this.chart = c3.generate(config);
+	logger.log('this.chart', this.chart, 'this.dataTable', this.dataTable, 'config', config);
+};
 
 YAHOO.ELSA.Chart.prototype.editQueries = function(p_oData, p_sPathToQueryDir){
 	var oSelf = this;
@@ -1666,11 +1525,11 @@ YAHOO.ELSA.Chart.prototype.editQueries = function(p_oData, p_sPathToQueryDir){
 	oPanel.panel.render();
 	
 	var oElCreate = document.createElement('a');
-    oElCreate.href = '#';
-    oElCreate.innerHTML = 'Add query to chart';
-    oPanel.panel.body.appendChild(oElCreate);
-    var oElCreateEl = new YAHOO.util.Element(oElCreate);
-    oElCreateEl.on('click', oSelf.addQuery, [], oSelf);
+	oElCreate.href = '#';
+	oElCreate.innerHTML = 'Add query to chart';
+	oPanel.panel.body.appendChild(oElCreate);
+	var oElCreateEl = new YAHOO.util.Element(oElCreate);
+	oElCreateEl.on('click', oSelf.addQuery, [], oSelf);
 	
 	var formatMenu = function(elLiner, oRecord, oColumn, oData){
 		// Create menu for our menu button
@@ -1809,23 +1668,23 @@ YAHOO.ELSA.Chart.prototype.editQueries = function(p_oData, p_sPathToQueryDir){
 	
 	
 	var oPaginator = new YAHOO.widget.Paginator({
-	    pageLinks          : 10,
-        rowsPerPage        : 5,
-        rowsPerPageOptions : [5,20],
-        template           : "{CurrentPageReport} {PreviousPageLink} {PageLinks} {NextPageLink} {RowsPerPageDropdown}",
-        pageReportTemplate : "<strong>Records: {totalRecords} </strong> "
-    });
-    
-    var oDataTableCfg = {
-    	sortedBy : {key:"query_id", dir:YAHOO.widget.DataTable.CLASS_DESC}
-    };
-    
-    var oElDiv = document.createElement('div');
+		pageLinks          : 10,
+		rowsPerPage        : 5,
+		rowsPerPageOptions : [5,20],
+		template           : "{CurrentPageReport} {PreviousPageLink} {PageLinks} {NextPageLink} {RowsPerPageDropdown}",
+		pageReportTemplate : "<strong>Records: {totalRecords} </strong> "
+	});
+	
+	var oDataTableCfg = {
+		sortedBy : {key:"query_id", dir:YAHOO.widget.DataTable.CLASS_DESC}
+	};
+	
+	var oElDiv = document.createElement('div');
 	oElDiv.id = 'queries_dt';
 	oPanel.panel.body.appendChild(oElDiv);
 	
 	
-    try {	
+	try {	
 		this.editChartDataTable = new YAHOO.widget.DataTable(oElDiv,	oColumnDefs, oChartsDataSource, oDataTableCfg);
 		this.editChartDataTable.handleDataReturnPayload = function(oRequest, oResponse, oPayload){
 			oPayload.totalRecords = oResponse.meta.totalRecords;

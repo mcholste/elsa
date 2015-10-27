@@ -7,7 +7,6 @@
 }
 
 .yui-skin-sam .close { 
-	//background: url('https://ajax.googleapis.com/ajax/libs/yui/2.8.0r4/build/assets/skins/sam/sprite.png') no-repeat scroll 0 -300px transparent;
 	background: url('sprite.png') no-repeat scroll 0 -300px transparent;
 	cursor: pointer;
 	height: 15px;
@@ -409,16 +408,7 @@ div.outer-chart-div>div>h3 {
 	float: right;
 	width: 65%;
 }
-#google_charts_tbody > tr:first-child > td {
-	border-top: 0 solid #bbc;
-}
-#google_charts_tbody > tr > td {
-	padding: 5px 0;
-}
 #tabView .yui-content {
 	background: #fff;
 	border-bottom-color: #ddd;
-}
-.google-visualization-table-table th {
-	z-index: 0 !important;
 }

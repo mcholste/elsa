@@ -1,0 +1,46 @@
+.geowrapper {
+    width: 960px;
+    margin: -30px auto 0;
+    position: relative;
+}
+.geomap {
+    width: 960px;
+    height: 400px;
+    position: relative;
+}
+.geo table {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+}
+.geo .stroke {
+  fill: none;
+  stroke: #888;
+  stroke-width: 2px;
+}
+
+.geo .fill {
+  fill: #fff;
+}
+
+.geo .land {
+  fill: #222;
+}
+
+.geo .boundary {
+  fill: none;
+  stroke: #fff;
+  stroke-width: .5px;
+}
+.geo .country {
+    fill: steelblue;
+    stroke: white;
+}
+.geo h1 {
+  position: absolute;
+  top: 280px;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 18px;
+  text-align: center;
+  width: 960px;
+}

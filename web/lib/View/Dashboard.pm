@@ -1,4 +1,4 @@
-package View::GoogleDashboard;
+package View::Dashboard;
 use Moose;
 extends 'View';
 use Data::Dumper;
@@ -136,7 +136,7 @@ sub call {
 			#$self->controller->log->debug('dashboard args: ' . Dumper($args));
 			if (exists $args->{start}){
 				$args->{start_time} = UnixDate(ParseDate($args->{start}), '%s');
-				$self->controller->log->trace('set start_time to ' . (scalar localtime($args->{start_time})));
+				$self->controller->log->trace('set start_time to ' . (scalar localtime($args->{start_time})) . ' from ' . $args->{start});
 			}
 			else {
 				$args->{start_time} = (time() - (86400*7));
@@ -286,12 +286,18 @@ sub _get_index_body {
 
 	my $HTML =<<"EOHTML"
 <!--Load the AJAX API-->
-<!--<script type="text/javascript" src="https://www.google.com/jsapi"></script>-->
+<script type="text/javascript" src="$dir/inc/d3.min.js"></script>
+<script type="text/javascript" src="$dir/inc/c3.min.js"></script>
+<script src="$dir/inc/d3.geo.projection.v0.min.js"></script>
+<script src="$dir/inc/topojson.v1.min.js"></script>
+<script src="$dir/inc/world-topo.json"></script>
+<link rel="stylesheet" type="text/css" href="$dir/inc/c3.min.css" />
 <script type="text/javascript" src="$dir/inc/elsa.js" ></script>
 <script type="text/javascript" src="$dir/inc/dashboard.js" ></script>
 $yui_css
 $yui_js
 <link rel="stylesheet" type="text/css" href="$dir/inc/custom.css" />
+<link rel="stylesheet" type="text/css" href="$dir/inc/geo.css" />
 <script>
 $edit
 $refresh
@@ -299,7 +305,6 @@ $refresh
 var oRegExp = new RegExp('\\\\Wview=(\\\\w+)');
 var aMatches = oRegExp.exec(location.search);
 if (aMatches){
-	console.log('matched');
 	YAHOO.ELSA.viewMode = aMatches[1];
 }
 YAHOO.ELSA.queryMetaParamsDefaults = $defaults;
@@ -307,20 +312,16 @@ YAHOO.ELSA.dashboardParams = {
 	id: $args->{id},
 	title: '$args->{title}',
 	alias: '$args->{alias}',
-	container: 'google_charts',
+	container: 'charts',
 	rows: $json,
 	width: $args->{width}
 };
-			 
-// Load the Visualization API and the piechart package.
-//google.load('visualization', '1.0', {'packages':['corechart', 'charteditor', 'controls']});
+		 
 
 YAHOO.util.Event.addListener(window, "load", function(){
 	YAHOO.ELSA.initLogger();
-	// Set a callback to run when the Google Visualization API is loaded.
-	//google.setOnLoadCallback(loadCharts);
-	//YAHOO.ELSA.Chart.loadCharts();
-	oDashboard = new YAHOO.ELSA.Dashboard($args->{id}, '$args->{title}', '$args->{alias}', $json, 'google_charts');
+	// Set a callback to run when the API is loaded.
+	oDashboard = new YAHOO.ELSA.Dashboard($args->{id}, '$args->{title}', '$args->{alias}', $json, 'charts');
 	if (YAHOO.ELSA.dashboardRefreshInterval){
 		//YAHOO.lang.later(YAHOO.ELSA.dashboardRefreshInterval, oDashboard, 'redraw', [], true);
 		YAHOO.lang.later(YAHOO.ELSA.dashboardRefreshInterval, location, 'reload', [], true);
@@ -331,7 +332,7 @@ YAHOO.util.Event.addListener(window, "load", function(){
 
   <body class=" yui-skin-sam">
    <div id="panel_root"></div>
-    <div id="google_charts"></div>
+    <div id="charts"></div>
   </body>
 </html>
 EOHTML
