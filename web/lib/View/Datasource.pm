@@ -13,32 +13,6 @@ use Ouch qw(:trytiny);
 
 with 'Fields';
 
-sub workaroundNaN {
-	my $val = shift;
-	if (ref $val eq 'ARRAY' or reftype $val eq 'ARRAY'){
-		foreach (@$val){
-			$_ = workaroundNaN($_);
-		}
-		return $val;
-	}
-	elsif (ref $val eq 'HASH' or reftype $val eq 'HASH'){
-		foreach my $key (keys %$val){
-			$val->{$key} = workaroundNaN($val->{$key});
-		}
-		return $val;
-	}
-	else {
-		if ($val eq '-inf' or $val eq '+inf'){
-			print "Setting $val to undef\n";
-			return undef;
-		}
-		else {
-			print "leaving $val alone\n";
-			return $val;
-		}
-	}
-}
-
 sub call {
 	my ($self, $env) = @_;
     
@@ -192,8 +166,6 @@ sub call {
 				}
 				my @headers = ('Connection' => 'Keep-alive', 'Content-Type' => 'text/javascript');
 				$res->headers(\@headers);
-				print Dumper($datatable);
-				#$datatable = workaroundNaN($datatable);
 				my $body = $self->controller->json->encode($datatable);
 				#$res->body([encode_utf8($body)]);
 				$res->body([$body]);
