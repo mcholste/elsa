@@ -1084,7 +1084,7 @@ YAHOO.ELSA.Results = function(){
 			}
 			last = offset;
 		}
-		if (last < p_sText.length - 1){
+		if (last < p_sText.length){
 			aZones.push({
 				text: p_sText.slice(last, p_sText.length),
 				cls: '',
