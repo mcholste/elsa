@@ -115,7 +115,7 @@ YAHOO.ELSA.main = function () {
 				for (var i in aOps){
 					var elOption = document.createElement('option');
 					elOption.value = aOps[i];
-					elOption.innerHTML = aOps[i];
+					elOption.appendChild(document.createTextNode(aOps[i]));
 					elOperator.appendChild(elOption);
 				}
 				oPanel.panel.body.appendChild(elOperator);

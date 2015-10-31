@@ -915,25 +915,11 @@ YAHOO.ELSA.Results = function(){
 			var msgDiv = document.createElement('div');
 			msgDiv.setAttribute('class', 'msg');
 			var msg = cloneVar(oRecord.getData().msg);
-			var re;
-			
-			msg = oSelf.highlightText(msg, '<span class=\'highlight\'>%s</span>');
-//			if (typeof(oSelf.results.highlights) != 'undefined'){
-//				//apply highlights
-//				for (var sHighlight in oSelf.results.highlights){
-//					sHighlight = sHighlight.replace(/^["']*/, '');
-//					sHighlight = sHighlight.replace(/["']*$/, '');
-//					//logger.log('sHighlight '  + sHighlight);
-//					re = new RegExp(sHighlight, 'i');
-//					var aMatches = msg.match(re);
-//					if (aMatches != null){
-//						var sReplacement = '<span class=\'highlight\'>' + escapeHTML(aMatches[1]) + '</span>';
-//						re = new RegExp(aMatches[1], 'i');
-//						msg = msg.replace(re, sReplacement);
-//					}
-//				}
-//			}
-			msgDiv.innerHTML = msg;
+			oSelf.highlightAndAppend(msg, msgDiv);
+
+			//var re;
+			//msg = oSelf.highlightText(msg, '<span class=\'highlight\'>%s</span>');
+			// msgDiv.innerHTML = msg;
 			p_elCell.appendChild(msgDiv);
 			
 			var oDiv = document.createElement('div');
@@ -942,28 +928,11 @@ YAHOO.ELSA.Results = function(){
 			for (var i in oTempWorkingSet){
 				var fieldHash = oTempWorkingSet[i];
 				var aMatches = null;
-				fieldHash.value_with_markup = oSelf.highlightText(fieldHash.value, '<span class=\'highlight\'>%s</span>');
-//				if (typeof(oSelf.results.highlights) != 'undefined'){
-//					for (var sHighlight in oSelf.results.highlights){
-//					    re = new RegExp(sHighlight, 'i');
-//						if (fieldHash.value != null){
-//							aMatches = fieldHash.value.toString().match(re);
-//						}
-//						if (aMatches != null){
-//							var sReplacement = '<span class=\'highlight\'>' + escapeHTML(aMatches[1]) + '</span>';
-//							re = new RegExp(aMatches[1], 'i');
-//							fieldHash.value_with_markup = fieldHash.value.replace(re, sReplacement);
-//						}
-//						else if (fieldHash.value != ''){
-//							fieldHash.value_with_markup = escapeHTML(fieldHash.value);
-//						}
-//						//logger.log('fieldHash', fieldHash);
-//					}
-//				}
+				//fieldHash.value_with_markup = oSelf.highlightText(fieldHash.value, '<span class=\'highlight\'>%s</span>');
 				
 				// create chart link
 				var oGraphA = document.createElement('a');
-				oGraphA.innerHTML = fieldHash['field'];
+				oGraphA.appendChild(document.createTextNode(fieldHash['field']));
 				oGraphA.setAttribute('href', '#');
 				oGraphA.setAttribute('class', 'key');
 				oDiv.appendChild(oGraphA);
@@ -977,27 +946,8 @@ YAHOO.ELSA.Results = function(){
 				a.setAttribute('href', '#');//Will jump to the top of page. Could be annoying
 				a.setAttribute('class', 'value');
 				
-//				if (typeof(oSelf.results.highlights) != 'undefined'){
-//					for (var sHighlight in oSelf.results.highlights){
-//						sHighlight = sHighlight.replace(/^["']*/, '');
-//						sHighlight = sHighlight.replace(/["']*$/, '');
-//						//logger.log('str: ' + fieldHash['value_with_markup'] + ', re:' + re.toString());
-//						if (fieldHash['value_with_markup']){
-//							var re = new RegExp(RegExp.escape(sHighlight), 'i');
-//							var aMatches = msg.match(re);
-//							if (aMatches != null){
-//								var sReplacement = '<span class=\'highlight\'>' + escapeHTML(aMatches[1]) + '</span>';
-//								re = new RegExp(aMatches[1], 'i');
-//								fieldHash['value_with_markup'] = fieldHash['value_with_markup'].replace(re, sReplacement);
-//							}
-//						}
-//						else {
-//							fieldHash['value_with_markup'] = '';
-//						}
-//					}
-//				}
-				
-				a.innerHTML = fieldHash['value_with_markup'];
+				//a.innerHTML = fieldHash['value_with_markup'];
+				oSelf.highlightAndAppend(fieldHash.value, a);
 				
 				oDiv.appendChild(document.createTextNode('='));
 				oDiv.appendChild(a);
@@ -1014,9 +964,143 @@ YAHOO.ELSA.Results = function(){
 			return '';
 		}
 	}
+
+	this.highlightAndAppend = function(msg, msgDiv){
+		var aSections = oSelf.getHighlightTextZones(msg);
+		for (var i = 0, len = aSections.length; i < len; i++){
+			if (aSections[i].cls){
+				var spanDiv = document.createElement('span');
+				var elSpanDiv = new YAHOO.util.Element(spanDiv);
+				elSpanDiv.addClass(aSections[i].cls);
+				spanDiv.appendChild(document.createTextNode(
+					aSections[i].text
+				));
+				msgDiv.appendChild(spanDiv);
+			}
+			else {
+				msgDiv.appendChild(document.createTextNode(
+					aSections[i].text
+				));
+			}
+		}
+	}
 	
+	this.getHighlightTextZones = function(p_sText){
+		var aZones = [];
+		if (typeof(oSelf.results.highlights) != 'undefined'){
+			for (var sHighlight in this.results.highlights){
+				// sHighlight = sHighlight.replace(/^["']*/, '');
+				// sHighlight = sHighlight.replace(/["']*$/, '');
+				var i = 0;
+				while (i < p_sText.length){
+					var iStartChar = p_sText.toLowerCase().indexOf(sHighlight.toLowerCase(), i);
+					if (iStartChar === -1) break;
+					var iEndChar = iStartChar + sHighlight.length;
+					// Check to be sure this is in accordance with tokenizing
+					if (!oSelf.results.archive){
+						if ((iStartChar > 0 
+							&& oSelf.results.tokenizer_punct_chars.indexOf(p_sText[iStartChar - 1]) > -1)
+							|| (iEndChar < (p_sText.length - 1)
+							&& oSelf.results.tokenizer_punct_chars.indexOf(p_sText[iEndChar]) > -1)){
+							i = iEndChar;
+							continue;
+						}
+					}
+					//aZones.push([iStartChar, iEndChar]);
+					var iLastMatch = 0;
+					if (aZones.length){
+						iLastMatch = aZones[aZones.length -1 ].offsets[1];
+					}
+					
+					// Add match zone
+					aZones.push({
+						text: p_sText.slice(iStartChar, iEndChar),
+						cls: 'highlight',
+						offsets: [iStartChar, iEndChar]
+					});
+					
+					i = iEndChar;
+				}
+			}
+		}
+		// Find any overlaps
+		var aDiscard = [];
+		for (var i = 0, len = aZones.length; i < len; i++){
+			for (var j = 0, jlen = aZones.length; j < jlen; j++){
+				if (i === j) continue;
+				var a = aZones[i].offsets[0];
+				var b = aZones[i].offsets[1];
+				var x = aZones[j].offsets[0];
+				var y = aZones[j].offsets[1];
+				if ((a > x && b < y) //entirely contained
+					|| (a > x && a < y) // a in xy
+					|| (b > x && b < y) // b in xy
+				){
+					// Go with larger
+					if ((b - a) > (y - x)){
+						if (aDiscard.indexOf(j) < 0)
+							aDiscard.push(j);
+					}
+					else {
+						if (aDiscard.indexOf(i) < 0)
+							aDiscard.push(i);
+					}
+				}
+			}
+		}
+		// Perform discard
+		if (aDiscard.length){
+			var aNew = [];
+			for (var i = 0, len = aZones.length; i < len; i++){
+				if (aDiscard.indexOf(i) < 0)
+					aNew.push(aZones[i]);
+			}
+			aZones = aNew;
+		}
+
+		aZones = aZones.sort(function(a, b){
+			return a.offsets[0] < b.offsets[0] ? -1 : 1;
+		});
+
+		// Add zones for all chars prior to match
+		var aStateChanges = [];
+		for (var i = 0, len = aZones.length; i < len; i++){
+			aStateChanges.push.apply(aStateChanges, aZones[i].offsets);
+		}
+		var bInHighlight = false;
+		var last = 0;
+		for (var i = 0, len = aStateChanges.length; i < len; i++){
+			var offset = aStateChanges[i];
+			if (!bInHighlight){
+				aZones.push({
+					text: p_sText.slice(last, offset),
+					cls: '',
+					offsets: [last, offset]
+				});
+				bInHighlight = true;
+			}
+			else {
+				bInHighlight = false;
+			}
+			last = offset;
+		}
+		if (last < p_sText.length - 1){
+			aZones.push({
+				text: p_sText.slice(last, p_sText.length),
+				cls: '',
+				offsets: [last, p_sText.length]
+			});
+		}
+
+		// Sort by offsets
+		return aZones.sort(function(a, b){
+			return a.offsets[0] < b.offsets[0] ? -1 : 1;
+		});
+	};
+
 	this.highlightText = function(p_sText, p_sReplacementTemplate){
 		p_sText = escapeHTML(p_sText);
+		return p_sText;
 		if (typeof(oSelf.results.highlights) != 'undefined'){
 			for (var sHighlight in this.results.highlights){
 				sHighlight = sHighlight.replace(/^["']*/, '');
@@ -1063,8 +1147,9 @@ YAHOO.ELSA.Results = function(){
 			
 			a.setAttribute('href', '#');//Will jump to the top of page. Could be annoying
 			a.setAttribute('class', 'value');
-			a.innerHTML = oSelf.highlightText(p_oData, '<span class=\'highlight\'>%s</span>');
-			
+			//a.innerHTML = oSelf.highlightText(p_oData, '<span class=\'highlight\'>%s</span>');
+			oSelf.highlightAndAppend(p_oData, a);
+
 			oDiv.appendChild(a);
 			
 			var oAEl = new YAHOO.util.Element(a);
@@ -1083,7 +1168,8 @@ YAHOO.ELSA.Results = function(){
 	}
 	
 	this.formatAddHighlights = function(p_elCell, oRecord, oColumn, p_oData){
-		p_elCell.innerHTML = oSelf.highlightText(p_oData, '<span class=\'highlight\'>%s</span>');
+		//p_elCell.innerHTML = oSelf.highlightText(p_oData, '<span class=\'highlight\'>%s</span>');
+		oSelf.highlightAndAppend(p_oData, p_elCell);
 	}
 	
 	this.formatDate = function(p_elCell, oRecord, oColumn, p_oData)
@@ -1105,7 +1191,7 @@ YAHOO.ELSA.Results = function(){
 		if (YAHOO.util.Dom.get('use_utc') && YAHOO.util.Dom.get('use_utc').checked){
 			// only display the year if it isn't the current year
 			if (curDate.getUTCFullYear() != oDate.getUTCFullYear()){
-				p_elCell.innerHTML = sprintf('%04d %s %s %02d %02d:%02d:%02d UTC',
+				p_elCell.appendChild(document.createTextNode(sprintf('%04d %s %s %02d %02d:%02d:%02d UTC',
 					oDate.getUTCFullYear(),
 					YAHOO.ELSA.TimeTranslation.Days[ oDate.getUTCDay() ],
 					YAHOO.ELSA.TimeTranslation.Months[ oDate.getUTCMonth() ],
@@ -1113,17 +1199,17 @@ YAHOO.ELSA.Results = function(){
 					oDate.getUTCHours(),
 					oDate.getUTCMinutes(),
 					oDate.getUTCSeconds()
-				);
+				)));
 			}
 			else {
-				p_elCell.innerHTML = sprintf('%s %s %02d %02d:%02d:%02d UTC',
+				p_elCell.appendChild(document.createTextNode(sprintf('%s %s %02d %02d:%02d:%02d UTC',
 					YAHOO.ELSA.TimeTranslation.Days[ oDate.getUTCDay() ],
 					YAHOO.ELSA.TimeTranslation.Months[ oDate.getUTCMonth() ],
 					oDate.getUTCDate(),
 					oDate.getUTCHours(),
 					oDate.getUTCMinutes(),
 					oDate.getUTCSeconds()
-				);
+				)));
 			}	
 		}
 		else {
@@ -1131,7 +1217,7 @@ YAHOO.ELSA.Results = function(){
 			//var sLocale = aMatches[1];
 			// only display the year if it isn't the current year
 			if (curDate.getYear() != oDate.getYear()){
-				p_elCell.innerHTML = sprintf('%04d %s %s %02d %02d:%02d:%02d',
+				p_elCell.appendChild(document.createTextNode(sprintf('%04d %s %s %02d %02d:%02d:%02d',
 					oDate.getFullYear(),
 					YAHOO.ELSA.TimeTranslation.Days[ oDate.getDay() ],
 					YAHOO.ELSA.TimeTranslation.Months[ oDate.getMonth() ],
@@ -1139,17 +1225,17 @@ YAHOO.ELSA.Results = function(){
 					oDate.getHours(),
 					oDate.getMinutes(),
 					oDate.getSeconds()
-				);
+				)));
 			}
 			else {
-				p_elCell.innerHTML = sprintf('%s %s %02d %02d:%02d:%02d',
+				p_elCell.appendChild(document.createTextNode(sprintf('%s %s %02d %02d:%02d:%02d',
 					YAHOO.ELSA.TimeTranslation.Days[ oDate.getDay() ],
 					YAHOO.ELSA.TimeTranslation.Months[ oDate.getMonth() ],
 					oDate.getDate(),
 					oDate.getHours(),
 					oDate.getMinutes(),
 					oDate.getSeconds()
-				);
+				)));
 			}
 		}
 	};
@@ -1199,12 +1285,35 @@ YAHOO.ELSA.Results = function(){
 						var sTabLabel = YAHOO.ELSA.currentQuery.stringifyTerms() + ' (Saved to QID ' + oSelf.id + ') ';
 						//oSelf.tab.set('label', sTabLabel);
 						
-						oSelf.tab.get('labelEl').innerHTML = 
-							'<table id="' + oSelf.id + '" style="padding: 0px;"><tr><td class="yui-skin-sam">' + escapeHTML(sTabLabel) + '</td>' +
-							'<td id="close_box_' + oSelf.id + '" class="yui-skin-sam close"></td></tr></table>';
-						var oElClose = new YAHOO.util.Element(YAHOO.util.Dom.get('close_box_' + oSelf.id));
-						oElClose.removeClass('hiddenElement');
-						oElClose.addListener('click', oSelf.closeTab, oSelf, true);
+						// oSelf.tab.get('labelEl').innerHTML = 
+						// 	'<table id="' + oSelf.id + '" style="padding: 0px;"><tr><td class="yui-skin-sam">' + escapeHTML(sTabLabel) + '</td>' +
+						// 	'<td id="close_box_' + oSelf.id + '" class="yui-skin-sam close"></td></tr></table>';
+						
+						oSelf.tab.get('labelEl').innerHTML = '';
+						var oTable = document.createElement('table');
+						oTable.id = oSelf.id;
+						oSelf.tab.get('labelEl').appendChild(oTable);
+						var oElTable = new YAHOO.util.Element(oTable);
+						oElTable.setStyle('padding', '0px');
+						var oTbody = document.createElement('tbody');
+						oTable.appendChild(oTbody);
+						var oTr = document.createElement('tr');
+						oTbody.appendChild(oTr);
+						var oTd = document.createElement('td');
+						oTd.appendChild(document.createTextNode(sTabLabel));
+						oTr.appendChild(oTd);
+						oElTd = new YAHOO.util.Element(oTd);
+						oElTd.addClass('yui-skin-sam');
+
+						oTd = document.createElement('td');
+						oTd.id = 'close_box_' + oSelf.id;
+						oTr.appendChild(oTd);
+						oElTd = new YAHOO.util.Element(oTd);
+						oElTd.addClass('yui-skin-sam close');
+
+
+						oElTd.removeClass('hiddenElement');
+						oElTd.addListener('click', oSelf.closeTab, oSelf, true);
 					}
 					else {
 						logger.log(oReturn);
@@ -1237,11 +1346,13 @@ YAHOO.ELSA.Results = function(){
 		
 		a.setAttribute('href', '#');//Will jump to the top of page. Could be annoying
 		a.setAttribute('class', 'value');
-		a.innerHTML = p_oData;
+		//a.innerHTML = p_oData;
+		a.appendChild(document.createTextNode(p_oData));
 		
 		// Special case for logs coming from localhost to show the node value instead
 		if (p_oColumn.getKey() == 'host' && p_oData == '127.0.0.1'){
-			a.innerHTML = p_oRecord.getData().node;
+			//a.innerHTML = p_oRecord.getData().node;
+			a.appendChild(document.createTextNode(p_oRecord.getData().node));
 		}
 				
 		p_elCell.appendChild(a);
@@ -1576,7 +1687,8 @@ YAHOO.ELSA.Results = function(){
 		var formatValue = function(p_elCell, oRecord, oColumn, p_oData){
 			var a = document.createElement('a');
 			a.setAttribute('href', '#');
-			a.innerHTML = p_oData;
+			//a.innerHTML = p_oData;
+			a.appendChild(document.createTextNode(p_oData));
 			var el = new YAHOO.util.Element(a);
 			el.on('click', YAHOO.ELSA.addTermFromOnClick, [p_sGroupBy, p_oData], YAHOO.ELSA.currentQuery);
 			p_elCell.appendChild(a);
@@ -1782,7 +1894,8 @@ YAHOO.ELSA.Results.LiveTail = function(p_oQuery){
 				var msgDiv = document.createElement('div');
 				msgDiv.setAttribute('class', 'msg');
 				
-				msg = oSelf.highlightText(msg, '<span style="background-color:yellow">%s</span>');
+				//msg = oSelf.highlightText(msg, '<span style="background-color:yellow">%s</span>');
+				oSelf.highlightAndAppend(msg, msgDiv);
 //				if (typeof(oSelf.results.highlights) != 'undefined'){
 //					//apply highlights
 //					for (var sHighlight in oSelf.results.highlights){
@@ -1797,7 +1910,7 @@ YAHOO.ELSA.Results.LiveTail = function(p_oQuery){
 //						}
 //					}
 //				}
-				msgDiv.innerHTML = msg;
+				//msgDiv.innerHTML = msg;
 				p_elCell.appendChild(msgDiv);
 			}
 			else {
@@ -1808,37 +1921,13 @@ YAHOO.ELSA.Results.LiveTail = function(p_oQuery){
 				for (var i in oTempWorkingSet){
 					var fieldHash = oTempWorkingSet[i];
 					fieldHash.value_with_markup = fieldHash.value;
-					
+
 					var oHighlightDiv = document.createElement('span');
+					oSelf.highlightAndAppend(fieldHash['field'] + '=' 
+						+ fieldHash.value_with_markup, oHighlightDiv);
 					
-					fieldHash['value_with_markup'] = oSelf.highlightText(fieldHash['value_with_markup'], '<span style="background-color:yellow">%s</span>');
-					oHighlightDiv.innerHTML = fieldHash['field'] + '=' + fieldHash.value_with_markup;
-//					if (typeof(oSelf.results.highlights) != 'undefined'){
-//						for (var sHighlight in oSelf.results.highlights){
-//							sHighlight = sHighlight.replace(/^["']*/, '');
-//							sHighlight = sHighlight.replace(/["']*$/, '');
-//							var re = new RegExp('(' + sHighlight + ')', 'ig');
-//							//logger.log('str: ' + fieldHash['value_with_markup'] + ', re:' + re.toString());
-//							if (fieldHash['value_with_markup']){
-//								var re = new RegExp('(' + RegExp.escape(sHighlight) + ')', 'ig');
-//								var aMatches = msg.match(re);
-//								if (aMatches != null){
-//									var sReplacement = '<span style="background-color:yellow">' + escapeHTML(aMatches[0]) + '</span>';
-//									fieldHash['value_with_markup'] = fieldHash['field'] + '=' + fieldHash['value_with_markup'].replace(re, sReplacement);
-//									logger.log('matched and showing: ' + fieldHash['value_with_markup']);
-//								}
-//							}
-//							else {
-//								fieldHash['value_with_markup'] = fieldHash['field'] + '=';
-//							}
-//						}
-//						oHighlightDiv.innerHTML = fieldHash['value_with_markup'];
-//					}
-//					else {
-//						logger.log('no highlights, using ' + fieldHash.value_with_markup);
-//						oHighlightDiv.innerHTML = fieldHash['field'] + '=' + fieldHash.value_with_markup;
-//						logger.log('oHighlightDiv.innerHTML: ' + oHighlightDiv.innerHTML);
-//					}
+					//fieldHash['value_with_markup'] = oSelf.highlightText(fieldHash['value_with_markup'], '<span style="background-color:yellow">%s</span>');
+					//oHighlightDiv.innerHTML = fieldHash['field'] + '=' + fieldHash.value_with_markup;
 					oDiv.appendChild(oHighlightDiv);
 									
 					oDiv.appendChild(document.createTextNode(' '));
@@ -1868,7 +1957,8 @@ YAHOO.ELSA.Results.Given = function(p_oResults){
 			var msgDiv = document.createElement('div');
 			msgDiv.setAttribute('class', 'msg');
 			var msg = cloneVar(oRecord.getData().msg);
-			msgDiv.innerHTML = msg;
+			//msgDiv.innerHTML = msg;
+			oSelf.highlightAndAppend(msg, msgDiv);
 			p_elCell.appendChild(msgDiv);
 			
 			var oDiv = document.createElement('div');
@@ -2039,7 +2129,8 @@ YAHOO.ELSA.Form.prototype.appendItem = function(p_oEl, p_oArgs){
 		p_oEl.appendChild(oInputEl);
 		if (p_oArgs.args.label){
 			var elText = document.createElement('label');
-			elText.innerHTML = p_oArgs.args.label;
+			//elText.innerHTML = p_oArgs.args.label;
+			elText.appendChild(document.createTextNode(p_oArgs.args.label));
 			elText['for'] = p_oArgs.args.id;
 			p_oEl.appendChild(elText);
 		}
@@ -2293,6 +2384,7 @@ YAHOO.ELSA.closeTabsUntilCurrent = function(){
 }
 
 YAHOO.ELSA.Results.Tabbed = function(p_oTabView, p_sQueryString, p_sTabLabel){
+	var oSelf = this;
 	this.superClass = YAHOO.ELSA.Results;
 	this.superClass();
 	
@@ -2336,12 +2428,33 @@ YAHOO.ELSA.Results.Tabbed = function(p_oTabView, p_sQueryString, p_sTabLabel){
 	try {
 		this.tabView.addTab(this.tab);
 		this.tabId = this.tabView.getTabIndex(this.tab);
-		this.tab.get('labelEl').innerHTML = 
-			'<table id="' + this.id + '" style="padding: 0px;"><tr><td class="yui-skin-sam">' + escapeHTML(p_sTabLabel) + '</td>' +
-			'<td id="close_box_' + this.id + '" class="yui-skin-sam loading"></td></tr></table>';
-		var oElClose = new YAHOO.util.Element(YAHOO.util.Dom.get('close_box_' + this.id));
-		oElClose.removeClass('hiddenElement');
-		
+		// this.tab.get('labelEl').innerHTML = 
+		// 	'<table id="' + this.id + '" style="padding: 0px;"><tr><td class="yui-skin-sam">' + escapeHTML(p_sTabLabel) + '</td>' +
+		// 	'<td id="close_box_' + this.id + '" class="yui-skin-sam loading"></td></tr></table>';
+		oSelf.tab.get('labelEl').innerHTML = '';
+		var oTable = document.createElement('table');
+		oTable.id = oSelf.id;
+		oSelf.tab.get('labelEl').appendChild(oTable);
+		var oElTable = new YAHOO.util.Element(oTable);
+		oElTable.setStyle('padding', '0px');
+		var oTbody = document.createElement('tbody');
+		oTable.appendChild(oTbody);
+		var oTr = document.createElement('tr');
+		oTbody.appendChild(oTr);
+		var oTd = document.createElement('td');
+		oTd.appendChild(document.createTextNode(p_sTabLabel));
+		oTr.appendChild(oTd);
+		oElTd = new YAHOO.util.Element(oTd);
+		oElTd.addClass('yui-skin-sam');
+
+		oTd = document.createElement('td');
+		oTd.id = 'close_box_' + oSelf.id;
+		oTr.appendChild(oTd);
+		oElTd = new YAHOO.util.Element(oTd);
+		oElTd.addClass('yui-skin-sam loading');
+
+		oElTd.removeClass('hiddenElement');
+				
 		this.closeTab = function(p_oEvent){
 			logger.log('closing tab: ', this);
 			YAHOO.util.Event.stopEvent(p_oEvent);
@@ -2355,7 +2468,7 @@ YAHOO.ELSA.Results.Tabbed = function(p_oTabView, p_sQueryString, p_sTabLabel){
 			this.tabId = '';
 			this.tab = '';
 		}
-		oElClose.addListener('click', this.closeTab, this, true);
+		oElTd.addListener('click', this.closeTab, this, true);
 		
 		// Create a div we'll attach the results menu button to later
 		var oEl = document.createElement('div');
@@ -2433,8 +2546,8 @@ YAHOO.ELSA.Results.Tabbed = function(p_oTabView, p_sQueryString, p_sTabLabel){
 		
 		if (this.results.batch){
 			var oEl = document.createElement('h3');
-			oEl.innerHTML = 'Query ' + this.qid + ' submitted.  ' +
-				this.results.batch_message + '<br>';
+			oEl.appendChild(document.createTextNode('Query ' + this.qid + ' submitted.  ' +
+				this.results.batch_message + '<br>'));
 			this.tab.get('contentEl').appendChild(oEl);
 			var aEl = document.createElement('a');
 			aEl.innerHTML = 'Cancel Query';
@@ -2566,7 +2679,7 @@ YAHOO.ELSA.Results.Tabbed = function(p_oTabView, p_sQueryString, p_sTabLabel){
 		// If there were any errors, display them
 		if (this.results.errors && this.results.errors.length > 0){
 			var elErrors = document.createElement('b');
-			elErrors.innerHTML = 'Errors: ' + this.results.errors.join(', ');
+			elErrors.appendChild(document.createTextNode('Errors: ' + this.results.errors.join(', ')));
 			headerContainerDiv.appendChild(elErrors);
 			var oElErrorsDiv = new YAHOO.util.Element(elErrors);
 			oElErrorsDiv.addClass('warning');
@@ -2587,7 +2700,7 @@ YAHOO.ELSA.Results.Tabbed = function(p_oTabView, p_sQueryString, p_sTabLabel){
 				}
 			}
 			if (keys(aWarningMessages).length){
-				elWarnings.innerHTML = 'Errors: ' + keys(aWarningMessages).join(', ');
+				elWarnings.appendChild(document.createTextNode('Errors: ' + keys(aWarningMessages).join(', ')));
 				headerContainerDiv.appendChild(elWarnings);
 				var oElWarningsDiv = new YAHOO.util.Element(elWarnings);
 				oElWarningsDiv.addClass('warning');
@@ -2596,7 +2709,7 @@ YAHOO.ELSA.Results.Tabbed = function(p_oTabView, p_sQueryString, p_sTabLabel){
 			
 			if (keys(aInfoMessages)){
 				var elInfos = document.createElement('b');
-				elInfos.innerHTML = 'Warnings: ' + keys(aInfoMessages).join(', ');
+				elInfos.appendChild(document.createTextNode('Warnings: ' + keys(aInfoMessages).join(', ')));
 				headerContainerDiv.appendChild(elInfos);
 				var oElInfosDiv = new YAHOO.util.Element(elInfos);
 				//oElInfosDiv.addClass('warning');
@@ -2682,7 +2795,7 @@ YAHOO.ELSA.Results.Tabbed = function(p_oTabView, p_sQueryString, p_sTabLabel){
 		// If there were any errors, display them
 		if (this.results.errors && this.results.errors.length > 0){
 			var elErrors = document.createElement('b');
-			elErrors.innerHTML = 'Errors: ' + this.results.errors.join(', ');
+			elErrors.appendChild(document.createTextNode('Errors: ' + this.results.errors.join(', ')));
 			headerContainerDiv.appendChild(elErrors);
 			var oElErrorsDiv = new YAHOO.util.Element(elErrors);
 			oElErrorsDiv.addClass('warning');
@@ -2692,7 +2805,7 @@ YAHOO.ELSA.Results.Tabbed = function(p_oTabView, p_sQueryString, p_sTabLabel){
 		// If there were any warnings, display them
 		if (this.results.warnings && this.results.warnings.length > 0){
 			var elWarnings = document.createElement('b');
-			elWarnings.innerHTML = 'Warnings: ' + this.results.warnings.join(', ');
+			elWarnings.appendChild(document.createTextNode('Warnings: ' + this.results.warnings.join(', ')));
 			headerContainerDiv.appendChild(elWarnings);
 			var oElWarningsDiv = new YAHOO.util.Element(elWarnings);
 			oElWarningsDiv.addClass('warning');
@@ -3705,7 +3818,12 @@ YAHOO.ELSA.getSavedResults = function(){
 //	};
 	
 	var formatPermaLink = function(elLiner, oRecord, oColumn, oData){
-		elLiner.innerHTML = '<a href="get_results?qid=' + oRecord.getData().qid + '&hash=' + oRecord.getData().hash + '" target="_blank">permalink</a>';
+		var a = document.createElement('a');
+		a.href = 'get_results?qid=' + oRecord.getData().qid + '&hash=' + oRecord.getData().hash;
+		a.target = '_blank';
+		a.appendChild(document.createTextNode('permalink'));
+		elLiner.appendChild(a);
+		//elLiner.innerHTML = '<a href="get_results?qid=' + oRecord.getData().qid + '&hash=' + oRecord.getData().hash + '" target="_blank">permalink</a>';
 	}
 		
 	// Build the panel if necessary
@@ -3944,17 +4062,17 @@ YAHOO.ELSA.getVersion = function(){
 					var oTr = document.createElement('tr');
 					oTbody.appendChild(oTr);
 					var oTd = document.createElement('td');
-					oTd.innerHTML = sName;
+					oTd.appendChild(document.createTextNode(sName));
 					oTr.appendChild(oTd);
 					oTd = document.createElement('td');
-					oTd.innerHTML = YAHOO.ELSA.formParams.version[sName];
+					oTd.appendChild(document.createTextNode(YAHOO.ELSA.formParams.version[sName]));
 					oTr.appendChild(oTd);
 				}
 				oPanel.panel.body.appendChild(oTable);
 			}
 			else {
 				var oDiv = document.createElement('div');
-				oDiv.innerHTML = YAHOO.ELSA.formParams.version;
+				oDiv.appendChild(document.createTextNode(YAHOO.ELSA.formParams.version));
 				oPanel.panel.body.appendChild(oDiv);
 			}
 		}
@@ -4088,10 +4206,10 @@ YAHOO.ELSA.getPreferences = function(){
 				
 		var formatValue = function(elLiner, oRecord, oColumn, oData){
 			if (typeof(oData) != 'string'){
-				elLiner.innerHTML = YAHOO.lang.JSON.stringify(oData);
+				elLiner.appendChild(document.createTextNode(YAHOO.lang.JSON.stringify(oData)));
 			}
 			else {
-				elLiner.innerHTML = oData;
+				elLiner.appendChild(document.createTextNode(oData));
 			}
 		}
 		
@@ -4412,7 +4530,7 @@ YAHOO.ELSA.getQuerySchedule = function(p_oEvent, p_a, p_oMenuItem, p_bAsAdmin){
 		
 		for (var i = 0; i < aTimeUnits.length; i++){
 			if (aTimeUnits[i] == 1){
-				elLiner.innerHTML = aIntervalValues[i]['label'];
+				elLiner.appendChild(document.createTextNode(aIntervalValues[i]['label']));
 				logger.log('setting interval: ' + aIntervalValues[i]['label']);
 			}
 		}
@@ -4428,13 +4546,13 @@ YAHOO.ELSA.getQuerySchedule = function(p_oEvent, p_a, p_oMenuItem, p_bAsAdmin){
 		if (!i){
 			i = 0;
 		}
-		elLiner.innerHTML = aEnabledValues[i]['label'];
+		elLiner.appendChild(document.createTextNode(aEnabledValues[i]['label']));
 	};
 	
 	var formatQuery  = function(elLiner, oRecord, oColumn, oData){
 		try {
 			oParsed = YAHOO.lang.JSON.parse(oData);
-			elLiner.innerHTML = oParsed['query_string'];
+			elLiner.appendChild(document.createTextNode(oParsed['query_string']));
 		}
 		catch (e){
 			logger.log(e);
@@ -4446,7 +4564,7 @@ YAHOO.ELSA.getQuerySchedule = function(p_oEvent, p_a, p_oMenuItem, p_bAsAdmin){
 		logger.log('connector data:', oData);
 		logger.log('column', oColumn);
 		logger.log('record', oRecord);
-		elLiner.innerHTML = oData;
+		elLiner.appendChild(document.createTextNode(oData));
 	}
 	var formatThreshold = function(elLiner, oRecord, oColumn, oData){
 		var p_i = parseInt(oData);
@@ -4454,7 +4572,7 @@ YAHOO.ELSA.getQuerySchedule = function(p_oEvent, p_a, p_oMenuItem, p_bAsAdmin){
 		logger.log('oColumn', oColumn);
 		logger.log('oRecord', oRecord);
 		if (!p_i){
-			elLiner.innerHTML = oData;
+			elLiner.appendChild(document.createTextNode(oData));
 		}
 		else {
 			if (p_i >= 86400){
@@ -5073,7 +5191,7 @@ YAHOO.ELSA.getDashboards = function(){
 	var formatAuth = function(elLiner, oRecord, oColumn, oData){
 		for (var i in aAuthMenu){
 			if (aAuthMenu[i].value == oData){
-				elLiner.innerHTML = aAuthMenu[i].text;
+				elLiner.appendChild(document.createTextNode(aAuthMenu[i].text));
 				break;
 			}
 		}
@@ -5651,7 +5769,7 @@ YAHOO.ELSA.showLogInfo = function(p_oData, p_oRecord){
 	oTbody.appendChild(oTr);
 	
 	oTd = document.createElement('td');
-	oTd.innerHTML = p_oData.summary;
+	oTd.appendChild(document.createTextNode(p_oData.summary));
 	oTr.appendChild(oTd);
 	
 	oTr = document.createElement('tr');
@@ -5668,7 +5786,7 @@ YAHOO.ELSA.showLogInfo = function(p_oData, p_oRecord){
 	for (var i in p_oData.urls){
 		var oA = document.createElement('a');
 		oA.href = p_oData.urls[i];
-		oA.innerHTML = p_oData.urls[i];
+		oA.appendChild(document.createTextNode(p_oData.urls[i]));
 		oA.target = '_blank';
 		oTd.appendChild(oA);
 		oTd.appendChild(document.createElement('br'));

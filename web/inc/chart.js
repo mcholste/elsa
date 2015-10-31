@@ -255,7 +255,7 @@ YAHOO.ELSA.Chart.Auto = function(p_oArgs){
     linkDiv.appendChild(saveLink);
 	*/
 	var titleEl = document.createElement('h3');
-	titleEl.innerHTML = p_oArgs.title;
+	titleEl.appendChild(document.createTextNode(p_oArgs.title));
 	linkDiv.appendChild(titleEl);
     outerContainerDiv.appendChild(linkDiv);
 

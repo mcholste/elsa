@@ -49,7 +49,7 @@ YAHOO.ELSA.Dashboard = function(p_iId, p_sTitle, p_sAlias, p_oRows, p_sContainer
 	this.charts = {};
 	
 	var oElTitle = document.createElement('h1');
-	oElTitle.innerHTML = this.title;
+	oElTitle.appendChild(document.createTextNode(this.title));
 	this.container.appendChild(oElTitle);
 	
 	this.outsideTable = document.createElement('table');
@@ -1167,7 +1167,6 @@ YAHOO.ELSA.Chart.prototype.makeSimpleChart = function(){
 	var data = [];
 	var i = 0;
 	var dt = this.dataTable;
-	console.log('datatable', this.dataTable);
 	// var n = dt.getNumberOfRows();
 	var n = dt.rows.length;
 	for(var i = 0; i < n; ++i) {
@@ -1193,7 +1192,6 @@ YAHOO.ELSA.Chart.prototype.makeSimpleChart = function(){
 		// 	highlight: thisColor[3]
 		// } );
 	}
-	console.log('created data', data, 'from', dt);
 	var chartDiv = document.createElement('div');
 	var canvasEl = document.createElement('canvas');
 	chartDiv.appendChild(canvasEl);
@@ -1205,7 +1203,7 @@ YAHOO.ELSA.Chart.prototype.makeSimpleChart = function(){
 	if (!title) {
 		title = label + ' ' + YAHOO.ODE.Chart.getChartCode(this.type) + ' Chart';
 	}
-	hElem.innerHTML = title;
+	hElem.appendChild(document.createTextNode(title));
 	hElem.style['margin-bottom'] = 0;
 	this.chart_el.appendChild(hElem);
 	this.chart_el.appendChild(chartDiv);
@@ -1259,7 +1257,6 @@ YAHOO.ELSA.Chart.prototype.makeSimpleChart = function(){
 		var ymax = 0;
 		var thisColor = colorPalette[paletteLength - 10];
 
-		console.log('data before labels: ', data);
 		for(var i = 0; i < data.length; ++i) {
 			var val = data[i]["value"];
 			if (val > ymax) { ymax = val; }

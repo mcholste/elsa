@@ -23,6 +23,7 @@ use CHI;
 
 our $Default_limit = 100;
 our $Tokenizer_regex = '[^A-Za-z0-9\\-\\.\\@\\_]';
+our $Tokenizer_punct_chars = ['-', '.', '@', '_'];
 our $Sql_tokenizer_regex = '[^-A-Za-z0-9\\.\\@\\_]';
 
 # Required
@@ -182,10 +183,11 @@ sub TO_JSON {
 	# Find highlights to inform the web client
 	foreach my $boolean (qw(and or)){
 		foreach my $key (sort keys %{ $self->terms->{$boolean} }){
-			my @regex = $self->term_to_regex($self->terms->{$boolean}->{$key}->{value}, $self->terms->{$boolean}->{$key}->{field});
-			foreach (@regex){
-				$self->highlights->{$_} = 1 if defined $_;
-			}
+			$self->highlights->{ $self->terms->{$boolean}->{$key}->{value} } = 1;
+			# my @regex = $self->term_to_regex($self->terms->{$boolean}->{$key}->{value}, $self->terms->{$boolean}->{$key}->{field});
+			# foreach (@regex){
+			# 	$self->highlights->{$_} = 1 if defined $_;
+			# }
 		}
 	}
 	
@@ -201,6 +203,7 @@ sub TO_JSON {
 		query_meta_params => $self->meta_params,
 		hash => $self->hash,
 		highlights => $self->highlights,
+		tokenizer_punct_chars => $Tokenizer_punct_chars,
 		stats => $self->stats,
 		approximate => $self->results->is_approximate,
 		percentage_complete => $self->results->percentage_complete,
