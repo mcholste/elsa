@@ -1167,22 +1167,33 @@ YAHOO.ELSA.Chart.prototype.makeSimpleChart = function(){
 	var data = [];
 	var i = 0;
 	var dt = this.dataTable;
+	console.log('datatable', this.dataTable);
 	// var n = dt.getNumberOfRows();
 	var n = dt.rows.length;
 	for(var i = 0; i < n; ++i) {
-		// var label = dt.getValue(i, 0);
-		// var value = dt.getValue(i, 1);
-		var label = dt.rows[i][0].v;
+		
+		var label = dt.rows[i][0]
 		var value = dt.rows[i][1];
-		var thisColor = colorPalette[((paletteLength - ((i+6) % paletteLength)) - 1)];
+		var thisColor = colorPalette[
+			((paletteLength - ((i+6) % paletteLength)) - 1) ];
 		data.push( {
 			label: label,
 			value: value,
 			color: thisColor[0],
 			highlight: thisColor[3]
-		} );
+		});
+		
+		// var label = dt.rows[i][0].v;
+		// var value = dt.rows[i][1];
+		// var thisColor = colorPalette[((paletteLength - ((i+6) % paletteLength)) - 1)];
+		// data.push( {
+		// 	label: label,
+		// 	value: value,
+		// 	color: thisColor[0],
+		// 	highlight: thisColor[3]
+		// } );
 	}
-	logger.log('created data', data, 'from', dt);
+	console.log('created data', data, 'from', dt);
 	var chartDiv = document.createElement('div');
 	var canvasEl = document.createElement('canvas');
 	chartDiv.appendChild(canvasEl);
@@ -1247,6 +1258,8 @@ YAHOO.ELSA.Chart.prototype.makeSimpleChart = function(){
 		var barCount = data.length;
 		var ymax = 0;
 		var thisColor = colorPalette[paletteLength - 10];
+
+		console.log('data before labels: ', data);
 		for(var i = 0; i < data.length; ++i) {
 			var val = data[i]["value"];
 			if (val > ymax) { ymax = val; }

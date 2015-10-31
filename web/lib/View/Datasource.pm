@@ -94,14 +94,15 @@ sub call {
 						push @{ $datatable->{columns} }, {id => $groupby, label => $groupby, type => 'datetime'}, {id => 'value' . $value_id++, label => $label, type => 'number'};
 					}
 					else {
-						if ($query_args->{query_meta_params}->{type} and $query_args->{query_meta_params}->{type} =~ /geo/i){
-							#$datatable->add_columns({id => $groupby, label => $groupby, type => 'string'}, {id => 'value' . $value_id++, label => $label, type => 'number'});
-							push @{ $datatable->{columns} }, {id => $groupby, label => $groupby, type => 'string'}, {id => 'value' . $value_id++, label => $label, type => 'number'};
-						}
-						else {
-							#$datatable->add_columns({id => $groupby, label => $groupby, type => 'string'}, {id => 'value' . $value_id++, label => $label, type => 'number'});
-							push @{ $datatable->{columns} }, {id => $groupby, label => $groupby, type => 'string'}, {id => 'value' . $value_id++, label => $label, type => 'number'};
-						}
+						push @{ $datatable->{columns} }, {id => $groupby, label => $groupby, type => 'string'};
+						# if ($query_args->{query_meta_params}->{type} and $query_args->{query_meta_params}->{type} =~ /geo/i){
+						# 	#$datatable->add_columns({id => $groupby, label => $groupby, type => 'string'}, {id => 'value' . $value_id++, label => $label, type => 'number'});
+						# 	push @{ $datatable->{columns} }, {id => $groupby, label => $groupby, type => 'string'}, {id => 'value' . $value_id++, label => $label, type => 'number'};
+						# }
+						# else {
+						# 	#$datatable->add_columns({id => $groupby, label => $groupby, type => 'string'}, {id => 'value' . $value_id++, label => $label, type => 'number'});
+						# 	push @{ $datatable->{columns} }, {id => $groupby, label => $groupby, type => 'string'}, {id => 'value' . $value_id++, label => $label, type => 'number'};
+						# }
 					}
 					
 					# Then add rows
