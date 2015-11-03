@@ -119,7 +119,9 @@ body {
 	display: block;
 	font-size: 1.2em;
 	font-weight: bold;
-	margin-bottom: 0.4em;
+	//margin-bottom: 0.4em;
+	text-align: center;
+	margin-bottom: 0px;
 }
 #charts{
 	height:200px;
@@ -374,6 +376,7 @@ div.dbchart > * {
 	display: inline-block;
 	vertical-align: top;
 }
+
 ul.line-legend li,
 ul.bar-legend li,
 ul.horizontalbar-legend li,

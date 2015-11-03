@@ -655,6 +655,12 @@ YAHOO.ELSA.Chart = function(p_oArgs, p_oContainer, p_oDashboard){
 	this.options = p_oArgs.chart_options;
 	this.x = p_oArgs.x;
 	this.y = p_oArgs.y;
+
+	this.typeToDataTableParser = {
+		number: parseInt,
+		string: YAHOO.util.DataSourceBase.parseString,
+		datetime: YAHOO.util.DataSourceBase.parseDate
+	};
 	
 	var aNeededIds = [ 'chart', 'dashboard', 'control' ];
 	if (YAHOO.ELSA.editCharts){
@@ -1160,12 +1166,23 @@ YAHOO.ELSA.Chart.prototype.getOptions = function(){
 	return oOptions;
 }
 
+YAHOO.ELSA.Chart.prototype.getTitle = function(){
+	var title = this.options && this.options.title;
+	// var label = dt.getColumnLabel(0) || this.queries[0].query_string.replace(/.*groupby:/, '').ucfirst();
+	var label = this.dataTable.columns[0].label || this.queries[0].query_string.replace(/.*groupby:/, '').ucfirst();
+	if (!title) {
+		title = label + ' ' + YAHOO.ODE.Chart.getChartCode(this.type) + ' Chart';
+	}
+	return title;
+};
+
 YAHOO.ELSA.Chart.prototype.makeSimpleChart = function(){
+	var oSelf = this;
 	logger.log('makeSimpleChart');
 	var colorPalette = YAHOO.ODE.Chart.getPalette_a();
 	var paletteLength = colorPalette.length;
 	var data = [];
-	var i = 0;
+	//var i = 0;
 	var dt = this.dataTable;
 	// var n = dt.getNumberOfRows();
 	var n = dt.rows.length;
@@ -1197,14 +1214,10 @@ YAHOO.ELSA.Chart.prototype.makeSimpleChart = function(){
 	chartDiv.appendChild(canvasEl);
 	var ctx = canvasEl.getContext("2d");
 	var hElem = document.createElement('h3');
-	var title = this.options && this.options.title;
-	// var label = dt.getColumnLabel(0) || this.queries[0].query_string.replace(/.*groupby:/, '').ucfirst();
-	var label = dt.columns[0].label || this.queries[0].query_string.replace(/.*groupby:/, '').ucfirst();
-	if (!title) {
-		title = label + ' ' + YAHOO.ODE.Chart.getChartCode(this.type) + ' Chart';
-	}
+	hElem.setAttribute('class', 'chart_title');
+	var title = oSelf.getTitle();
 	hElem.appendChild(document.createTextNode(title));
-	hElem.style['margin-bottom'] = 0;
+	//hElem.style['margin-bottom'] = 0;
 	this.chart_el.appendChild(hElem);
 	this.chart_el.appendChild(chartDiv);
 	var chartClass = 'dbchart';
@@ -1223,7 +1236,7 @@ YAHOO.ELSA.Chart.prototype.makeSimpleChart = function(){
 		canvasEl.height = 225;
 		canvasEl.width = 225;
 		canvasEl.style.width = '225px';
-		hElem.style['text-align'] = 'center';
+		//hElem.style['text-align'] = 'center';
 		var myPieChart;
 		if ('PieChart' == this.type)
 			myPieChart = new Chart(ctx).Pie(data, {});
@@ -1339,52 +1352,78 @@ YAHOO.ELSA.Chart.prototype.makeSimpleChart = function(){
 				myBarChart = makeChart(ctx, data, opts);
 			}
 		}, 50);
-	} else {
+	} 
+	else if (this.type === 'Table'){
+		chartDiv.removeChild(canvasEl);
+		var h1 = document.createElement('h1');
+		h1.appendChild(document.createTextNode(this.title));
+		
+		var oFields = [];
+		var oColumns = [];
+		
+		for (var i = 0, len = oSelf.dataTable.columns.length; i < len; i++){
+			var col = oSelf.dataTable.columns[i];
+			var rec = { key: col.id };
+			if (oSelf.typeToDataTableParser[col.type])
+				rec.parser = oSelf.typeToDataTableParser[col.type];
+			oFields.push(rec);
+			oColumns.push({
+				key: col.id,
+				label: col.label,
+				sortable: true
+			});
+			oFields.push({key: 'count_' + col.id});
+			oColumns.push({
+				key: 'count_' + col.id,
+				label: 'Count',
+				sortable: true
+			});
+		}
+		
+		var oDataSource = new YAHOO.util.DataSource(oSelf.dataTable.rows);
+		oDataSource.responseType = YAHOO.util.DataSource.TYPE_JSARRAY;
+		oDataSource.responseSchema = {
+			fields: oFields,
+			metaFields: {
+				totalRecords: oSelf.dataTable.rows.length,
+				recordsReturned: oSelf.dataTable.rows.length,
+				startIndex: 0
+			}
+		};
+		var oTableCfg = {
+			dynamicData: false,
+			summary: oSelf.query_string,
+			sortedBy: {
+				key: 'count_' + oSelf.dataTable.columns[0].id,
+				dir: 'desc'
+			}
+		};
+		var oChartContainer = document.createElement('div');
+		oSelf.chart_el.appendChild(oChartContainer);
+		try {
+			var oDataTable = new YAHOO.widget.DataTable(
+				oChartContainer, oColumns, oDataSource, oTableCfg);
+			var table = YAHOO.util.Selector.query('table', oDataTable.configs.element, true);
+			table.setAttribute('style', 'margin:auto');
+		} catch (e){
+			logger.log('Error building datatable: ' + e.stack);
+		}
+	}
+	else {
 		YAHOO.ELSA.Error('Unsupported chart type: ' + this.type);
-// 		this.wrapper = new google.visualization.ChartWrapper({
-// 			dataTable: this.dataTable,
-// 			containerId: this.chart_el,
-// 			chartType: this.type,
-// 			options: this.getOptions()
-// 		});
-
-// 		var oSelf = this;
-// 		google.visualization.events.addListener(this.wrapper, 'ready', function(){
-// 			google.visualization.events.addListener(oSelf.wrapper.getChart(), 'select', function(){ oSelf.selectHandler() });
-// 		});
-
-// 		this.wrapper.draw();
-
-// 		if ('Table' == this.type) {
-// 			logger.log("TABLE CHART el:" + this.chart_el.id);
-// 			var tblODiv = this.chart_el.firstChild;
-// 			var tblIDiv = tblODiv.firstChild;
-// 			var btnDiv = this.chart_el.parentNode.firstChild;
-// 			btnDiv.style['margin-bottom'] = '15px';
-// 			logger.log("OUTER DIV: " + tblODiv.getAttribute('class'));
-// 			logger.log("INNER DIV: " + tblIDiv.getAttribute('class'));
-// 			setTimeout(function() {
-// 				tblODiv.style.width = cdWidth + 'px';
-// 				logger.log("Table Div Width:"+tblODiv.style.width);
-// 				if (tblODiv.offsetHeight > 245) {
-// 					tblODiv.style.height = '245px';
-// 					var sbWidth = 15;
-// 					if (typeof InstallTrigger !== 'undefined')
-// 						sbWidth += 5;
-// //					tblODiv.style.width = (tblODiv.offsetWidth + sbWidth)+'px';
-// 					tblODiv.style.overflow = 'auto';
-// 				}
-// 			}, 70);
-// 		}
-
-// 		logger.log(this.wrapper);
 	}
 	chartDiv.setAttribute('class', chartClass);
 }
 
 YAHOO.ELSA.Chart.prototype.makeGeoChart = function(){
 	var oSelf = this;
-	
+	console.log('options', oSelf.options);
+
+	var hElem = document.createElement('h3');
+	hElem.setAttribute('class', 'chart_title');
+	hElem.appendChild(document.createTextNode(oSelf.getTitle()));
+	oSelf.chart_el.appendChild(hElem);
+		
 	var country_data = {};
 	var minOpacity = .05;
 	var min = Infinity, max = 0;
@@ -1408,7 +1447,9 @@ YAHOO.ELSA.Chart.prototype.makeGeoChart = function(){
 		}
 	}
 	
-	var oEl = new YAHOO.util.Element(oSelf.chart_el);
+	var oContainer = document.createElement('div');
+	oSelf.chart_el.appendChild(oContainer);
+	var oEl = new YAHOO.util.Element(oContainer);
 	oEl.addClass('geo');
 	oEl.addClass('geowrapper');
 	var oDiv = document.createElement('div');
@@ -1478,6 +1519,14 @@ YAHOO.ELSA.Chart.prototype.makeGeoChart = function(){
 };
 
 YAHOO.ELSA.Chart.prototype.makeTimeChart = function(){
+	var oSelf = this;
+	var hElem = document.createElement('h3');
+	hElem.setAttribute('class', 'chart_title');
+	hElem.appendChild(document.createTextNode(oSelf.getTitle()));
+	oSelf.chart_el.appendChild(hElem);
+
+	var oContainer = document.createElement('div');
+	this.chart_el.appendChild(oContainer);
 	var columns = [];
 	for (var i = 0, len = this.dataTable.columns.length; i < len; i++){
 		columns.push([this.dataTable.columns[i].label]);
@@ -1493,7 +1542,7 @@ YAHOO.ELSA.Chart.prototype.makeTimeChart = function(){
 		}
 	}
 	var config = {
-		bindto: this.dashboard_el,
+		bindto: oContainer,
 		size: {
 			width: 1000
 		},
