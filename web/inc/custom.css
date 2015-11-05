@@ -415,3 +415,7 @@ div.outer-chart-div>div>h3 {
 	background: #fff;
 	border-bottom-color: #ddd;
 }
+
+div.dashboard_table_container {
+	display: table;
+}

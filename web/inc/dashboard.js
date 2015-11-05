@@ -1355,8 +1355,7 @@ YAHOO.ELSA.Chart.prototype.makeSimpleChart = function(){
 	} 
 	else if (this.type === 'Table'){
 		chartDiv.removeChild(canvasEl);
-		var h1 = document.createElement('h1');
-		h1.appendChild(document.createTextNode(this.title));
+		(new YAHOO.util.Element(this.chart_el)).addClass('dashboard_table_container');
 		
 		var oFields = [];
 		var oColumns = [];
