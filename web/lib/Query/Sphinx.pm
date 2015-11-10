@@ -213,14 +213,9 @@ sub _build_query {
 		my $match_str = $self->_get_match_str($class_id, $terms_and_filters->{searches}, $group_key);
 		my $attr_str = $self->_get_attr_tests($class_id, $terms_and_filters->{filters});
 		$self->log->debug('attr_str: ' . $attr_str);
-		$self->log->debug('groupby: ' . $self->_get_groupby_clause($class_id));
-		$self->log->debug('orderby: ' . $self->_get_orderby_clause($class_id));
-		$self->log->debug('class_id: ' . $class_id);
 		my $query = {
 			select => $self->_get_select_clause($class_id, $attr_str),
-			where => $self->_get_where_clause($class_id, $match_str),
-			#groupby => $self->_get_groupby_clause($class_id),
-			#orderby => $self->_get_orderby_clause($class_id),
+			where => $self->_get_where_clause($class_id, $match_str)
 		};
 		if ($self->_get_groupby_clause($class_id)){
 			$query->{groupby} = $self->_get_groupby_clause($class_id);
@@ -627,7 +622,6 @@ sub _get_select_clause {
 			$groupby = 1;
 		}
 		return {
-			#clause => 'SELECT id, COUNT(*) AS _count, ' . $self->_attr($self->groupby, $class_id) . ' AS _groupby, '
 			clause => 'SELECT id, COUNT(*) AS _count, ' . $groupby . ' AS _groupby, '
 			. $attr_string . ' AS attr_tests, ' . $import_where . ' AS import_tests',
 			values => [],
@@ -1287,12 +1281,9 @@ sub _format_records_groupby {
 	my $ret = shift;
 	
 	my %agg;
-	#my $total_records = 0;
 	
 	# One-off for grouping by node
 	if ($self->groupby eq 'node'){
-		my $node_label = $self->peer_label ? $self->peer_label : '127.0.0.1';
-		$self->log->debug("Formatting node label $node_label");
 		if (not scalar keys %{ $ret->{results} }){
 			return;
 		}
@@ -1301,7 +1292,7 @@ sub _format_records_groupby {
 		my $count = $ret->{results}->{$key}->{_count};
 		$self->results->total_records($count);
 		$self->results->add_results({ $self->groupby => [
-			{ intval => $count, '_groupby' => $node_label, '_count' => $count }
+			{ intval => $count, '_groupby' => $self->peer_label, '_count' => $count }
 		] });
 		return;
 	}
@@ -1344,7 +1335,6 @@ sub _format_records_groupby {
 		my $increment = $Fields::Time_values->{ $self->groupby };
 		my $use_gmt = $increment >= 86400 ? 1 : 0;
 		foreach my $key (sort { $a <=> $b } keys %agg){
-			#$total_records += $agg{$key};
 			my $unixtime = $key * $increment;
 			
 			my $client_localtime = $unixtime - $self->parser->timezone_diff($unixtime);					
@@ -1380,7 +1370,6 @@ sub _format_records_groupby {
 		# Sort these in descending value order
 		my @tmp;
 		foreach my $key (sort { $agg{$b} <=> $agg{$a} } keys %agg){
-			#$total_records += $agg{$key};
 			push @tmp, { intval => $agg{$key}, '_groupby' => $key, '_count' => $agg{$key} };
 			last if scalar @tmp >= $self->limit;
 		}
