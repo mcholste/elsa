@@ -997,7 +997,7 @@ sub _attr {
 	my $self = shift;
 	my $field_name = shift;
 	my $class_id = shift;
-	
+
 	if (defined $Fields::Field_to_order->{$field_name}){
 		return $Fields::Field_order_to_attr->{ $Fields::Field_to_order->{$field_name} };
 	}
