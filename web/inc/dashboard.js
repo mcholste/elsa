@@ -661,6 +661,7 @@ YAHOO.ELSA.Chart = function(p_oArgs, p_oContainer, p_oDashboard){
 		string: YAHOO.util.DataSourceBase.parseString,
 		datetime: YAHOO.util.DataSourceBase.parseDate
 	};
+	this.defaultDataTableFormatter = YAHOO.widget.DataTable.formatText;
 	
 	var aNeededIds = [ 'chart', 'dashboard', 'control' ];
 	if (YAHOO.ELSA.editCharts){
@@ -1186,9 +1187,17 @@ YAHOO.ELSA.Chart.prototype.makeSimpleChart = function(){
 	var dt = this.dataTable;
 	// var n = dt.getNumberOfRows();
 	var n = dt.rows.length;
+	// Clean up any string values to avoid XSS
+	for (var i = 0; i < n; i++){
+		for (var j = 0, jlen = dt.rows[i].length; j < jlen; j++){
+			if (typeof(dt.rows[i][j]) === 'string'){
+				dt.rows[i][j] = escapeHTML(dt.rows[i][j]);
+			}
+		}
+	}
 	for(var i = 0; i < n; ++i) {
 		
-		var label = dt.rows[i][0]
+		var label = dt.rows[i][0];
 		var value = dt.rows[i][1];
 		var thisColor = colorPalette[
 			((paletteLength - ((i+6) % paletteLength)) - 1) ];
@@ -1369,7 +1378,8 @@ YAHOO.ELSA.Chart.prototype.makeSimpleChart = function(){
 			oColumns.push({
 				key: col.id,
 				label: col.label,
-				sortable: true
+				sortable: true,
+				formatter: self.defaultDataTableFormatter
 			});
 			oFields.push({key: 'count_' + col.id});
 			oColumns.push({
