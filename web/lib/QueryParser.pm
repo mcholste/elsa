@@ -229,6 +229,14 @@ sub parse {
 		connectors => $self->connectors,
 		warnings => $self->warnings,
 	);
+
+	$self->log->debug("self->peer_label: " . $self->peer_label);
+	if ($self->peer_label){
+		$args{peer_label} = $self->peer_label;
+	}
+	if ($self->from_peer){
+		$args{from_peer} = $self->from_peer;
+	}
 	if ($given_qid){
 		$args{qid} = $given_qid;
 	}
