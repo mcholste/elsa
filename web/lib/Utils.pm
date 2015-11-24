@@ -679,6 +679,7 @@ sub _peer_query {
 				
 				my $stats = {};
 				foreach my $key (keys %{ $ret_q->stats }){
+					next if $key eq 'peers' and ($peer eq '127.0.0.1' or $peer eq 'localhost');
 					$stats->{$key} = $ret_q->stats->{$key};
 				}
 				$stats->{total_request_time} = (time() - $start);
