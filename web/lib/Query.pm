@@ -394,7 +394,7 @@ sub mark_batch_start {
 	my $self = shift;
 	# Record that we're starting so no one else starts it
 	my ($query, $sth);
-	$sth = $self->db->prepare('UPDATE query_log SET num_results=-1, archive=? WHERE qid=?');
+	$sth = $self->db->prepare('UPDATE query_log SET num_results=-1, pid=? WHERE qid=?');
 	$sth->execute($$, $self->qid);
 	return $sth->rows;
 }
