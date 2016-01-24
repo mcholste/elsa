@@ -1455,6 +1455,8 @@ YAHOO.ELSA.Chart.prototype.makeGeoChart = function(){
 			country_data[country] = (minOpacity + .05);
 		}
 	}
+	console.log('country_data', country_data, 'rows', oSelf.dataTable.rows,
+		'sorted_countries', sorted_countries, 'oSelf.dataTable', oSelf.dataTable);
 	
 	var oContainer = document.createElement('div');
 	oSelf.chart_el.appendChild(oContainer);
@@ -1469,6 +1471,7 @@ YAHOO.ELSA.Chart.prototype.makeGeoChart = function(){
 	var h1 = document.createElement('h1');
 	oDiv.appendChild(h1);
 	var oElh1 = new YAHOO.util.Element(h1);
+	oElh1.addClass('geo');
 	
 	var width = 960, height = 400;  // map width and height, matches (cutoff Antarctica)
 	var projection = d3.geo.equirectangular();
@@ -1504,9 +1507,12 @@ YAHOO.ELSA.Chart.prototype.makeGeoChart = function(){
 	.on('mouseover', function(d){
 		var text = d.properties.admin;
 		if (typeof(country_data[d.properties.id]) !== 'undefined'){
-			text += ' ' + oSelf.dataTable.columns[1].label + ' ' + country_data[d.properties.id].count;
+			text += ' ' + country_data[d.properties.id].count;
 		}
-		d3.select('.geo h1').text(text);
+		else {
+			text += ' 0';
+		}
+		d3.select('h1.geo').text(text);
 
 	});
 
