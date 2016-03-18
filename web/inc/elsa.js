@@ -1947,6 +1947,7 @@ YAHOO.ELSA.Results.LiveTail = function(p_oQuery){
 };
 
 YAHOO.ELSA.Results.Given = function(p_oResults){
+	var oSelf = this;
 	this.superClass = YAHOO.ELSA.Results;
 	this.superClass();
 	this.results = p_oResults;
