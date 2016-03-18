@@ -654,7 +654,7 @@ sub _peer_query {
 					$q->groupby($ret_q->groupby);
 				}
 				else {
-					$q->groupby('');
+					$q->clear_groupby();
 				}
 				
 				if ($ret_q->results->records_returned and not $q->results->records_returned){
