@@ -772,7 +772,7 @@ sub _peer_query {
 					$q->groupby($raw_results->{groupby}->[0]);
 				}
 				else {
-					$q->groupby('');
+					$q->clear_groupby();
 				}
 				my $stats = $raw_results->{stats};
 				$stats ||= {};

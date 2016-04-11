@@ -593,7 +593,7 @@ sub transform_results {
 				$self->groupby($q->groupby);
 			}
 			else {
-				$self->groupby('');
+				$self->clear_groupby();
 			}
 			$q->transform_results($cb);
 		});
@@ -759,7 +759,7 @@ sub _post_transform {
 		}
 		$self->log->debug('final: ' . Dumper(\@final));
 		$self->results(Results->new(results => [ @final ]));
-		$self->groupby('');
+		$self->clear_groupby();
 	}
 }
 
@@ -805,7 +805,7 @@ sub _subsearch {
 			$self->groupby($q->groupby);
 		}
 		else {
-			$self->groupby('');
+			$self->clear_groupby();
 		}
 		
 		$q->start($self->start) if $self->start;

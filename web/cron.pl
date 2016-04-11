@@ -76,7 +76,7 @@ eval {
 		my $form_params = shift;
 		my $cur_time = $form_params->{end_int};
 		my $query_params = _get_schedule($controller, $cur_time);
-		my $num_run = _run_schedule($controller, $query_params, $cur_time);
+		my $num_run = _run_schedule($controller, $query_params, $cur_time, $cv);
 		
 		my $duration = time() - $start;
 		$controller->log->trace("Ran $num_run queries in $duration seconds.");
@@ -224,6 +224,7 @@ sub _run_schedule {
 	my $controller = shift;
 	my $query_params = shift;
 	my $cur_time = shift;
+	my $cv = shift;
 	
 	my ($query, $sth);
 	
@@ -258,7 +259,11 @@ sub _run_schedule {
 	my $counter = 0;
 	foreach my $query_params (@$query_params){
 		eval {
-			$controller->query($query_params, sub { $counter++ });
+			$cv->begin;
+			$controller->query($query_params, sub { 
+				$counter++; 
+				$cv->end; 
+			});
 		};
 		if ($@){
 			$controller->log->error('Problem running query: ' . Dumper($query_params) . "\n" . $@);

@@ -2249,9 +2249,6 @@ sub _send_to {
 						}
 						elsif (ref($plugin_object->results) eq 'HASH' and scalar keys %{ $plugin_object->results }){
 							$q->results(Results->new(results => $plugin_object->results->{results}));
-							#$self->log->debug('$plugin_object->results->{results}: ' . Dumper($plugin_object->results->{results}));
-							#$self->log->debug('$q->results: ' . Dumper($q->results));
-							#$self->log->debug('$q->results->all_results: ' . Dumper($q->results->all_results));
 						}
 						elsif (ref($plugin_object->results) eq 'ARRAY'){
 							$q->results(Results->new(results => $plugin_object->results));
