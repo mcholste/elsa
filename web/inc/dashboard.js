@@ -1432,28 +1432,52 @@ YAHOO.ELSA.Chart.prototype.makeGeoChart = function(){
 	hElem.setAttribute('class', 'chart_title');
 	hElem.appendChild(document.createTextNode(oSelf.getTitle()));
 	oSelf.chart_el.appendChild(hElem);
-		
+
 	var country_data = {};
 	var minOpacity = .05;
-	var min = Infinity, max = 0;
+	var min = Infinity, max = 0, counts = [], num_unique_counts = 0;
 	for (var i = 0, len = oSelf.dataTable.rows.length; i < len; i++){
 		var count = oSelf.dataTable.rows[i][1];
 		if (count > max) max = count;
 		if (count < min) min = count;
 		country_data[ oSelf.dataTable.rows[i][0] ] = count;
+		if (counts.indexOf(count) < 0)
+			num_unique_counts++;
+		counts.push(count);
 	}
+
+	// Group counts into groups
+	var opacities = [1, .8, .6, .4, .3, .2];
+	var num_groups = opacities.length;
+	if (num_unique_counts < num_groups)
+		num_groups = num_unique_counts;
+	else if (oSelf.dataTable.rows.length < num_groups)
+		num_groups = oSelf.dataTable.rows.length;
+
+	var group_counts = ckmeans(counts, num_groups);
+	group_counts = group_counts.reverse();
+	console.log('counts', counts, 'group_counts', group_counts);
+	
+	// Helper function to retrieve the group
+	function get_opacity(group_counts, count){
+		for (var i = 0, len = group_counts.length; i < len; i++){
+			for (var j = 0, jlen = group_counts[i].length; j < jlen; j++){
+				if (group_counts[i][j] === count) return opacities[i];
+			}
+		}
+		console.error('No group found for count ' + count);
+		return 0;
+	}
+
 	var sorted_countries = Object.keys(country_data).sort(function(a, b){
 		return country_data[a] > country_data[b] ? -1 : 1;
 	});
 
 	for (var country in country_data){
 		country_data[country] = {
-			opacity: country_data[country] / max,
+			opacity: get_opacity(group_counts, country_data[country]),
 			count: country_data[country]
 		};
-		if (country_data[country] < (minOpacity + .05)){
-			country_data[country] = (minOpacity + .05);
-		}
 	}
 	console.log('country_data', country_data, 'rows', oSelf.dataTable.rows,
 		'sorted_countries', sorted_countries, 'oSelf.dataTable', oSelf.dataTable);

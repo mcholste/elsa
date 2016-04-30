@@ -291,6 +291,7 @@ sub _get_index_body {
 <script src="$dir/inc/d3.geo.projection.v0.min.js"></script>
 <script src="$dir/inc/topojson.v1.min.js"></script>
 <script src="$dir/inc/world-topo.json"></script>
+<script src="$dir/inc/simple-statistics-ckmeans.js"></script>
 <link rel="stylesheet" type="text/css" href="$dir/inc/c3.min.css" />
 <script type="text/javascript" src="$dir/inc/elsa.js" ></script>
 <script type="text/javascript" src="$dir/inc/dashboard.js" ></script>
