@@ -152,7 +152,7 @@ builder {
 	enable 'CrossOrigin', origins => '*', methods => '*', headers => '*';
 	enable match_if all( path('!', qr!^/API/!) ), 'Session', store => 'File';
 	unless ($controller->conf->get('auth/method') eq 'none'){
-		enable match_if all( path('!', '/favicon.ico'), path('!', qr!^/inc/!), path('!', qr!^/transform!), path('!', qr!^/API/!) ), 'Auth::Basic', authenticator => $auth, realm => $controller->conf->get('auth/realm');
+		enable match_if all( path('!', '/favicon.ico'), path('!', qr!^/inc/!), path('!', qr!^/transform!), path('!', qr!^/API/!) ), $controller->conf->get('auth/type') ? $controller->conf->get('auth/type') : 'Auth::Basic', authenticator => $auth, realm => $controller->conf->get('auth/realm');
 	}
 	
 	

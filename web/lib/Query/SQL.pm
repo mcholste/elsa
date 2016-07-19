@@ -301,7 +301,7 @@ sub _get_select_clause {
 		}
 		my $groupby_attr = join(',', map { 'IF(' . $_ } @groupby_attr_clause) . ',id' . join('', map { ')' } @groupby_attr_clause);
 		return {
-			clause => 'SELECT id, COUNT(*) AS _count, ' . $groupby_attr . ' AS _groupby',
+			clause => 'SELECT *, COUNT(*) AS _count, ' . $groupby_attr . ' AS _groupby',
 			values => [],
 		}
 	}
@@ -555,6 +555,9 @@ sub _format_records_groupby {
 		}
 		elsif ($self->groupby eq 'program'){
 			$key = $row->{program};
+		}
+		elsif ($self->groupby eq 'host'){
+			$key = inet_ntoa(pack("N*", $row->{host_id}));
 		}
 		elsif ($self->groupby eq 'class'){
 			$key = $self->meta_info->{classes_by_id}->{ $row->{class_id} };
