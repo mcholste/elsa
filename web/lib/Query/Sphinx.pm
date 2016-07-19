@@ -253,8 +253,8 @@ sub _get_groupby_clause {
 	my $self = shift;
 	my $class_id = shift;
 	
-	return '_groupby' if $self->groupby eq 'node'; 
 	return '' unless $self->groupby;
+	return '_groupby' if $self->groupby eq 'node'; 
 	return $self->_attr($self->groupby, $class_id);
 }
 
