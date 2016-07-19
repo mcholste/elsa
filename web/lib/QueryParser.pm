@@ -230,7 +230,9 @@ sub parse {
 		warnings => $self->warnings,
 	);
 
-	$self->log->debug("self->peer_label: " . $self->peer_label);
+	if ($self->peer_label){
+		$self->log->debug("self->peer_label: " . $self->peer_label);
+	}
 	if ($self->peer_label){
 		$args{peer_label} = $self->peer_label;
 	}
@@ -444,9 +446,11 @@ sub _parse_query {
 #		throw(416, 'Invalid start or end: ' . (scalar localtime($self->directives->{start})) . ' ' . (scalar localtime($self->directives->{end})), { start => $self->directives->{start}, end => $self->directives->{end} });
 #	}
 	
-	if (exists $self->directives->{start} or $self->directives->{end}){
-		$self->log->debug('going with times start: ' . (scalar localtime($self->directives->{start})) .  ' (' . $self->directives->{start} . ') and end: ' .
-			(scalar localtime($self->directives->{end})) . ' (' . $self->directives->{end} . ')');
+	if (exists $self->directives->{start}){
+		$self->log->debug('going with start time: ' . (scalar localtime($self->directives->{start})) .  ' (' . $self->directives->{start} . ')');
+	}
+	if (exists $self->directives->{end}){
+		$self->log->debug('going with end time: ' . (scalar localtime($self->directives->{end})) . ' (' . $self->directives->{end} . ')');
 	}
 	
 	# Exclude our from_peer
