@@ -1934,7 +1934,7 @@
 					<pattern>Abandoning IP address @ESTRING:i0::@</pattern>
 					<pattern>Reclaiming abandoned lease @IPvANY:i0:@</pattern>
 					<pattern>client @ESTRING:i0:#@@NUMBER::@: update forwarding '@ESTRING:s1:/@</pattern>
-					<pattern>DNS format error from @ESTRING:i1:#@@NUMBER:i2:@ resolving </pattern>
+					<!-- appears misplaced... <pattern>DNS format error from @ESTRING:i1:#@@NUMBER:i2:@ resolving </pattern>-->
 					<pattern>DHCPACK on @ESTRING:i0: @to @ESTRING:s0: @(@ESTRING:s2:)@</pattern>
 				</patterns>
 				<examples>
@@ -2010,8 +2010,8 @@
 				  <!-- start securityonion -->
                   <pattern>@ESTRING::|@@ESTRING:s0:|@@ESTRING:i0:|@@ESTRING:i1:|@@ESTRING:i2:|@@ESTRING:i3:|@@ESTRING:s1:|@@ESTRING:s2:|@@ESTRING:s0:|@@ESTRING:s3:|@@ESTRING:s4:|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@</pattern>
                   <!-- end securityonion -->
-				  <pattern>@ESTRING::|@@ESTRING::|@@ESTRING:i0:|@@ESTRING:i1:|@@ESTRING:i2:|@@ESTRING:i3:|@@ESTRING:i4:|@@ESTRING::|@@ESTRING:s0:|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ANYSTRING:s1@</pattern>
-				  <pattern>@ESTRING::|@@ESTRING::|@@ESTRING:i0:|@@ESTRING:i1:|@@ESTRING:i2:|@@ESTRING:i3:|@@ESTRING:i4:|@@ESTRING::|@@ESTRING:s0:|@</pattern>
+				  <pattern>@ESTRING::|@@ESTRING::|@@ESTRING:i0:|@@ESTRING:i1:|@@ESTRING:i2:|@@ESTRING:i3:|@@ESTRING::|@@ESTRING::|@@ESTRING:s0:|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ANYSTRING:s1@</pattern>
+				  <pattern>@ESTRING::|@@ESTRING::|@@ESTRING:i0:|@@ESTRING:i1:|@@ESTRING:i2:|@@ESTRING:i3:|@@ESTRING::|@@ESTRING::|@@ESTRING:s0:|@</pattern>
 				</patterns>
 				<examples>
 					<example>
@@ -2074,8 +2074,8 @@
                   <!-- start securityonion -->
                   <pattern>@ESTRING::|@@ESTRING:s0:|@@ESTRING:i0:|@@ESTRING:i1:|@@ESTRING:i2:|@@ESTRING:i3:|@@ESTRING:s1:|@@ESTRING:s2:@</pattern>
                   <!-- end securityonion -->
-				  <pattern>@ESTRING::|@@ESTRING::|@@ESTRING:i0:|@@ESTRING:i1:|@@ESTRING:i2:|@@ESTRING:i3:|@@ESTRING:i4:|@@ESTRING::|@@ESTRING:s0:|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ANYSTRING:s1@</pattern>
-				  <pattern>@ESTRING::|@@ESTRING::|@@ESTRING:i0:|@@ESTRING:i1:|@@ESTRING:i2:|@@ESTRING:i3:|@@ESTRING:i4:|@@ESTRING::|@@ESTRING:s0:|@</pattern>
+				  <pattern>@ESTRING::|@@ESTRING::|@@ESTRING:i0:|@@ESTRING:i1:|@@ESTRING:i2:|@@ESTRING:i3:|@@ESTRING::|@@ESTRING::|@@ESTRING:s0:|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ESTRING::|@@ANYSTRING:s1@</pattern>
+				  <pattern>@ESTRING::|@@ESTRING::|@@ESTRING:i0:|@@ESTRING:i1:|@@ESTRING:i2:|@@ESTRING:i3:|@@ESTRING::|@@ESTRING::|@@ESTRING:s0:|@</pattern>
 				</patterns>
 				<examples>
 					<example>

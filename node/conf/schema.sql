@@ -411,6 +411,7 @@ INSERT INTO fields_classes_map (class_id, field_id, field_order) VALUES ((SELECT
 INSERT INTO fields_classes_map (class_id, field_id, field_order) VALUES ((SELECT id FROM classes WHERE class="FORTINET_URL"), (SELECT id FROM fields WHERE field="srcport"), 6);
 INSERT INTO fields_classes_map (class_id, field_id, field_order) VALUES ((SELECT id FROM classes WHERE class="FORTINET_URL"), (SELECT id FROM fields WHERE field="dstip"), 7);
 INSERT INTO fields_classes_map (class_id, field_id, field_order) VALUES ((SELECT id FROM classes WHERE class="FORTINET_URL"), (SELECT id FROM fields WHERE field="dstport"), 8);
+INSERT INTO fields_classes_map (class_id, field_id, field_order) VALUES ((SELECT id FROM classes WHERE class="FORTINET_URL"), (SELECT id FROM fields WHERE field="category"), 9);
 INSERT INTO fields_classes_map (class_id, field_id, field_order) VALUES ((SELECT id FROM classes WHERE class="FORTINET_URL"), (SELECT id FROM fields WHERE field="user"), 11);
 INSERT INTO fields_classes_map (class_id, field_id, field_order) VALUES ((SELECT id FROM classes WHERE class="FORTINET_URL"), (SELECT id FROM fields WHERE field="group"), 12);
 INSERT INTO fields_classes_map (class_id, field_id, field_order) VALUES ((SELECT id FROM classes WHERE class="FORTINET_URL"), (SELECT id FROM fields WHERE field="service"), 13);
@@ -434,6 +435,7 @@ INSERT INTO fields_classes_map (class_id, field_id, field_order) VALUES ((SELECT
 INSERT INTO fields_classes_map (class_id, field_id, field_order) VALUES ((SELECT id FROM classes WHERE class="CHECKPOINT"), (SELECT id FROM fields WHERE field="type"), 13);
 INSERT INTO fields_classes_map (class_id, field_id, field_order) VALUES ((SELECT id FROM classes WHERE class="CHECKPOINT"), (SELECT id FROM fields WHERE field="action"), 14);
 INSERT INTO fields_classes_map (class_id, field_id, field_order) VALUES ((SELECT id FROM classes WHERE class="CHECKPOINT"), (SELECT id FROM fields WHERE field="service"), 15);
+INSERT INTO fields_classes_map (class_id, field_id, field_order) VALUES ((SELECT id FROM classes WHERE class="CHECKPOINT"), (SELECT id FROM fields WHERE field="message_info"), 16);
 
 INSERT INTO fields_classes_map (class_id, field_id, field_order) VALUES ((SELECT id FROM classes WHERE class="PALO_ALTO_URL"), (SELECT id FROM fields WHERE field="srcip"), 5);
 INSERT INTO fields_classes_map (class_id, field_id, field_order) VALUES ((SELECT id FROM classes WHERE class="PALO_ALTO_URL"), (SELECT id FROM fields WHERE field="dstip"), 6);
@@ -580,6 +582,7 @@ INSERT INTO fields_classes_map (class_id, field_id, field_order) VALUES ((SELECT
 INSERT INTO fields_classes_map (class_id, field_id, field_order) VALUES ((SELECT id FROM classes WHERE class="FIREEYE"), (SELECT id FROM fields WHERE field="hostname"), 12);
 INSERT INTO fields_classes_map (class_id, field_id, field_order) VALUES ((SELECT id FROM classes WHERE class="FIREEYE"), (SELECT id FROM fields WHERE field="virusname"), 13);
 INSERT INTO fields_classes_map (class_id, field_id, field_order) VALUES ((SELECT id FROM classes WHERE class="FIREEYE"), (SELECT id FROM fields WHERE field="sourcetype"), 14);
+INSERT INTO fields_classes_map (class_id, field_id, field_order) VALUES ((SELECT id FROM classes WHERE class="FIREEYE"), (SELECT id FROM fields WHERE field="category"), 15);
 
 INSERT INTO fields_classes_map (class_id, field_id, field_order) VALUES ((SELECT id FROM classes WHERE class="BRO_FTP"), (SELECT id FROM fields WHERE field="eventid"), 11);
 INSERT INTO fields_classes_map (class_id, field_id, field_order) VALUES ((SELECT id FROM classes WHERE class="BRO_FTP"), (SELECT id FROM fields WHERE field="srcip"), 5);
