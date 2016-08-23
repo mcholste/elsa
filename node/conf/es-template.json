@@ -1,0 +1,61 @@
+{
+	"template": "elsa-*",
+	"settings": {
+		"number_of_shards": 1,
+		"analysis": {
+			"analyzer": {
+				"elsa-ngram": {
+					"tokenizer": "elsa_ngram_tokenizer"
+				}
+			},
+			"tokenizer": {
+				"elsa_ngram_tokenizer": {
+					"type": "nGram",
+					"min_gram": 3,
+					"max_gram": 4,
+					"token_chars": [ "letter", "digit", "whitespace", "punctuation", "symbol"]
+				}
+			}
+		}
+	},
+	"mappings": {
+		"events": {
+			"_source": {
+				"enabled": true
+			},
+			"dynamic_templates": [
+				{
+					"raw_strings": {
+						"match_mapping_type": "string",
+						"path_match": "raw.*",
+						"mapping": {
+							"type": "string",
+							"stored": true,
+							"index": "not_analyzed"
+						}
+					}
+				},
+				{
+					"default_strings": {
+						"match_mapping_type": "string",
+						"match": "*",
+						"path_unmatch": "raw.*",
+						"mapping": {
+							"type": "string",
+							"stored": false,
+							"index": "analyzed",
+							"analyzer": "elsa-ngram",
+							"copy_to": "raw.{name}"
+						}
+					}
+				}
+			],
+			"properties": {
+				"@timestamp": {
+					"type": "date",
+					"index": "not_analyzed"
+				}
+			}
+		}
+	}
+}
