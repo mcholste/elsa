@@ -2,10 +2,16 @@
 	"template": "elsa-*",
 	"settings": {
 		"number_of_shards": 1,
+		"max_num_segments": 1,
+		"refresh_interval": -1,
+		"number_of_replicas": 0,
 		"analysis": {
 			"analyzer": {
-				"elsa-ngram": {
+				"elsa_ngram": {
 					"tokenizer": "elsa_ngram_tokenizer"
+				},
+				"elsa_standard": {
+					"tokenizer": "elsa_standard_tokenizer"
 				}
 			},
 			"tokenizer": {
@@ -14,6 +20,10 @@
 					"min_gram": 3,
 					"max_gram": 4,
 					"token_chars": [ "letter", "digit", "whitespace", "punctuation", "symbol"]
+				},
+				"elsa_standard_tokenizer": {
+					"type": "pattern",
+					"pattern": "[^a-zA-Z0-9\\.\\-\\_\\@]+"
 				}
 			}
 		}
@@ -23,6 +33,7 @@
 			"_source": {
 				"enabled": true
 			},
+			"numeric_detection": true,
 			"dynamic_templates": [
 				{
 					"raw_strings": {
@@ -30,7 +41,7 @@
 						"path_match": "raw.*",
 						"mapping": {
 							"type": "string",
-							"stored": true,
+							"store": true,
 							"index": "not_analyzed"
 						}
 					}
@@ -42,9 +53,9 @@
 						"path_unmatch": "raw.*",
 						"mapping": {
 							"type": "string",
-							"stored": false,
+							"store": false,
 							"index": "analyzed",
-							"analyzer": "elsa-ngram",
+							"analyzer": "elsa_standard",
 							"copy_to": "raw.{name}"
 						}
 					}
@@ -54,6 +65,36 @@
 				"@timestamp": {
 					"type": "date",
 					"index": "not_analyzed"
+				},
+				"@message": {
+					"type": "string",
+					"store": false,
+					"index": "analyzed",
+					"analyzer": "elsa_ngram",
+					"copy_to": "raw.@message"
+				},
+				"uri": {
+					"type": "string",
+					"store": false,
+					"index": "analyzed",
+					"analyzer": "elsa_ngram",
+					"copy_to": "raw.uri"
+				},
+				"subject": {
+					"type": "string",
+					"store": false,
+					"index": "analyzed",
+					"analyzer": "elsa_ngram",
+					"copy_to": "raw.subject"
+				},
+				"ip": {
+					"type": "ip"
+				},
+				"srcip": {
+					"type": "ip"
+				},
+				"dstip": {
+					"type": "ip"
 				}
 			}
 		}
