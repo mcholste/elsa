@@ -1,0 +1,8 @@
+add-apt-repository ppa:maxmind/ppa
+apt-get update
+apt-get install libmaxminddb0 libmaxminddb-dev mmdb-bin
+pip install geoip2
+mkdir -p /tmp/elsa_build
+curl -L http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.mmdb.gz > /tmp/elsa_build/GeoLite2-City.mmdb.gz
+mkdir -p /usr/local/share/GeoIP
+gunzip -f /tmp/elsa_build/GeoLite2-City.mmdb.gz && cp /tmp/elsa_build/GeoLite2-City.mmdb /usr/local/share/GeoIP/
