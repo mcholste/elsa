@@ -138,6 +138,7 @@ class Distributor:
 		self.log = logging.getLogger("elsa.distributor")
 		self.log.info("Starting up as user %s" % getpass.getuser())
 		self.conf = conf
+		
 		def spawn_indexer(host, queue):
 			es = Indexer(host, queue)
 
@@ -180,17 +181,24 @@ class Distributor:
 
 class Decorator:
 	def __init__(self, conf={}):
-		self.ignore_list = set(["HOST", "HOST_FROM", "SOURCE", "MESSAGE", "LEGACY_MSGHDR", "PROGRAM", "FILENAME"])
+		self.ignore_list = set(["@timestamp", "HOST", "HOST_FROM", "SOURCE", "MESSAGE", "LEGACY_MSGHDR", "PROGRAM", "FILENAME"])
 		self.ip_field_list = set(["srcip", "dstip", "ip"])
-		
+		self.log = logging.getLogger("elsa.decorator")
+
 		self.has_geoip = False
+		self._geo_exc = Exception
 		try:
 			import geoip2.database
 			from geoip2.errors import AddressNotFoundError
+			self._geo_exc = AddressNotFoundError
 			self.has_geoip = True
 			self.geoip = geoip2.database.Reader(conf.get("geoip_db", "/usr/local/share/GeoIP/GeoLite2-City.mmdb"))
 		except Exception as e:
 			self.log.info("Failed to import geoip2, not using geoip decoration")
+
+	def parse_timestamp(self, timestamp):
+		# TODO
+		return time()
 
 	def decorate(self, doc):
 		# Cleanup syslog-ng fields
@@ -199,9 +207,22 @@ class Decorator:
 			ret["class"] = doc["_classifier"]["class"]
 			ret["rule_id"] = doc["_classifier"].get("rule_id", 0)
 		
+		# Handle timestamps
+		timestamp = doc.get("@timestamp", time())
+		if type(timestamp) != int or type(timestamp) != float:
+			# Epoch will start with 1 until 2035
+			if timestamp[0] != "1":
+				timestamp = self.parse_timestamp(timestamp)
+			else:
+				timestamp = float(timestamp)
+		# Turn into JS format
+
+		timestamp *= 1000
+		timestamp = int(timestamp)
+		
 		ret = {	
 			"@message": doc.get("MESSAGE", ""),
-			"@timestamp": doc.get("@timestamp", time()),
+			"@timestamp": timestamp,
 			"program": doc.get("PROGRAM", ""),
 			"header": doc.get("LEGACY_MSGHDR", ""),
 			"hostname": doc.get("HOST", "")
@@ -225,7 +246,7 @@ class Decorator:
 							"city": geoinfo.city.name,
 							"country": geoinfo.country.name
 						}
-					except AddressNotFoundError:
+					except self._geo_exc:
 						pass
 
 		return ret
