@@ -115,11 +115,11 @@ class Archiver:
 	def rollover(self):
 		self.log.info("Rolling over archive file at size %d and count %d" %\
 			(self.bytes_counter, self.counter))
-		self.counter = 0
-		self.bytes_counter = 0
 		try:
 			self.out_fh.close()
 			self.add_to_directory()
+			self.counter = 0
+			self.bytes_counter = 0
 			self.current_filename = self.get_new_filename()
 			self.out_fh = gzip.GzipFile(self.current_filename, mode="wb")
 			self.file_start = time()
