@@ -91,6 +91,7 @@ class Archiver:
 		self.current_filename = self.get_new_filename()
 		self.out_fh = gzip.GzipFile(self.current_filename, mode="wb")
 		for data in iter(self.queue.get, "STOP"):
+			data += "\n"
 			self.out_fh.write(data)
 			self.counter += 1
 			self.bytes_counter += len(data)
