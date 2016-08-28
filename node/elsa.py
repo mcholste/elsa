@@ -184,6 +184,8 @@ class Decorator:
 		self.ignore_list = set(["@timestamp", "HOST", "HOST_FROM", "SOURCE", "MESSAGE", "LEGACY_MSGHDR", "PROGRAM", "FILENAME"])
 		self.ip_field_list = set(["srcip", "dstip", "ip"])
 		self.log = logging.getLogger("elsa.decorator")
+		self.id = uuid.uuid4()
+		self.counter = 0
 
 		self.has_geoip = False
 		self._geo_exc = Exception
@@ -201,11 +203,7 @@ class Decorator:
 		return time()
 
 	def decorate(self, doc):
-		# Cleanup syslog-ng fields
-		ret = {}
-		if doc.has_key("_classifier"):
-			ret["class"] = doc["_classifier"]["class"]
-			ret["rule_id"] = doc["_classifier"].get("rule_id", 0)
+		self.counter += 1
 		
 		# Handle timestamps
 		timestamp = doc.get("@timestamp", time())
@@ -215,18 +213,27 @@ class Decorator:
 				timestamp = self.parse_timestamp(timestamp)
 			else:
 				timestamp = float(timestamp)
-		# Turn into JS format
 
+		# Turn into JS format
 		timestamp *= 1000
 		timestamp = int(timestamp)
 		
-		ret = {	
+		ret = {
+			# It is much cheaper to increment a counter then regen a uuid
+			"_id": "%s-%s" % (self.id, self.counter),
 			"@message": doc.get("MESSAGE", ""),
 			"@timestamp": timestamp,
 			"program": doc.get("PROGRAM", ""),
 			"header": doc.get("LEGACY_MSGHDR", ""),
 			"hostname": doc.get("HOST", "")
 		}
+		
+		# Cleanup syslog-ng fields
+		if doc.has_key("_classifier"):
+			ret["class"] = doc["_classifier"]["class"]
+			ret["rule_id"] = doc["_classifier"].get("rule_id", 0)
+		
+		
 		for k, v in doc.iteritems():
 			if k == "_classifier" or k in self.ignore_list:
 				continue
@@ -238,14 +245,17 @@ class Decorator:
 				if k in self.ip_field_list:
 					try:
 						geoinfo = self.geoip.city(v)
-						ret[k + "_geo"] = {
-							"cc": geoinfo.country.iso_code,
-							"latitude": geoinfo.location.latitude,
-							"longitude": geoinfo.location.longitude,
-							"state": geoinfo.subdivisions.most_specific.iso_code,
-							"city": geoinfo.city.name,
-							"country": geoinfo.country.name
-						}
+						if geoinfo.country.iso_code != None:
+							ret[k + "_geo"] = {
+								"cc": geoinfo.country.iso_code,
+								"location": {
+									"lat": geoinfo.location.latitude,
+									"lon": geoinfo.location.longitude
+								},
+								"state": geoinfo.subdivisions.most_specific.iso_code,
+								"city": geoinfo.city.name,
+								"country": geoinfo.country.name
+							}
 					except self._geo_exc:
 						pass
 
