@@ -95,6 +95,44 @@
 				},
 				"dstip": {
 					"type": "ip"
+				},
+				"srcip_geo": {
+					"properties": {
+						"cc": {
+							"type": "string"
+						},
+						"state": {
+							"type": "string"
+						},
+						"city": {
+							"type": "string"
+						},
+						"country": {
+							"type": "string"
+						},
+						"location": {
+							"type": "geo_point"
+						}
+					}
+				},
+				"dstip_geo": {
+					"properties": {
+						"cc": {
+							"type": "string"
+						},
+						"state": {
+							"type": "string"
+						},
+						"city": {
+							"type": "string"
+						},
+						"country": {
+							"type": "string"
+						},
+						"location": {
+							"type": "geo_point"
+						}
+					}
 				}
 			}
 		}
