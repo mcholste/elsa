@@ -1,0 +1,48 @@
+.node rect {
+  cursor: move;
+  fill-opacity: .9;
+  shape-rendering: crispEdges;
+}
+ 
+.node text {
+  pointer-events: none;
+  text-shadow: 0 1px 0 #fff;
+}
+ 
+.link {
+  fill: none;
+  stroke: #000;
+  stroke-opacity: .2;
+}
+ 
+.link:hover {
+  stroke-opacity: .5;
+}
+
+.dendogram .node circle {
+  fill: #999;
+}
+
+.dendogram .node text {
+  font: 10px sans-serif;
+}
+
+.dendogram .node--internal circle {
+  fill: #555;
+}
+
+.dendogram .node--internal text {
+  text-shadow: 0 1px 0 #fff, 0 -1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff;
+}
+
+.dendogram .link {
+  fill: none;
+  stroke: #555;
+  stroke-opacity: 0.4;
+  stroke-width: 1.5px;
+}
+
+.respect-whitespace {
+	white-space: pre;
+}
+

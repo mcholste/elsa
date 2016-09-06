@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+<link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.6.0/pure-min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-contextmenu/2.0.1/jquery.contextMenu.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css">
+<link rel="stylesheet" href="//code.jquery.com/ui/1.12.0/themes/base/jquery-ui.css">
+<link rel="stylesheet" href="inc/demo.css"></style>
+</head>
+<body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/3.10.1/lodash.js"></script>
+<!--<script src="inc/d3.min.js"></script>-->
+<script src="//d3js.org/d3.v4.min.js"></script>
+<script src="inc/c3.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-contextmenu/2.0.1/jquery.contextMenu.min.js"></script>
+<script src="https://code.jquery.com/ui/1.12.0/jquery-ui.js"></script>
+
+<script src="inc/sankey.js"></script>
+<script src="inc/grid.js"></script>
+<div class="pure-g">
+  <div class="pure-u-3-4" id="search_container">
+    <form id="search_form" style="display:inline-block">
+      <input name="query"></input>
+      <button id="submit">Search</button>
+    </form>
+  </div>
+  <div class="pure-u-1-4" id="action_container"></div>
+  <div class="pure-u-1" id="histogram_container"></div>
+  <div class="pure-u-3-4" id="viz_container"></div>
+  <div class="pure-u-1-4" id="transcript_container" style="height:500px;"></div>
+  <div class="pure-u-1" id="grid_container"></div>
+</div>
+</body>
+</html>
