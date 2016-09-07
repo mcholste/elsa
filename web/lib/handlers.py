@@ -125,8 +125,8 @@ class SearchHandler(BaseHandler):
 	# Using the post() coroutine
 	def get(self, uri):
 		query_string = self.get_argument("q")
-		es_query, parsed = self.parser.parse(query_string)
-		self.log.debug("parsed as %r" % parsed)
+		es_query, parsed = self.parser.parse(query_string, self)
+		self.log.debug("es_query: %r" % es_query)
 		self.request.parsed = parsed
 		self.request.es_query = es_query
 		self.request.raw_query = query_string
@@ -137,6 +137,9 @@ class SearchHandler(BaseHandler):
 		body = json.loads(body)
 		self.log.debug("body: %r" % body)
 		self.log.debug("parsed: %r" % self.request.parsed)
+		if body.has_key("hits"):
+			for hit in body["hits"]["hits"]:
+				hit["_source"]["@timestamp"] = datetime.datetime.fromtimestamp(int(hit["_source"]["@timestamp"])/1000).isoformat()
 		if body.has_key("aggregations"):
 			for rawfield, buckethash in body["aggregations"].iteritems():
 				fields = rawfield.split(",")
@@ -144,9 +147,13 @@ class SearchHandler(BaseHandler):
 				for i, field in enumerate(fields):
 					if field in self.ip_fields:
 						ipfields.append(i)
+				self.log.debug("rawfield: %s, ipfields: %r" % (rawfield, ipfields))
 				
 				for bucket in buckethash["buckets"]:
-					values = bucket["key"].split("-")
+					if bucket.has_key("key_as_string"):
+						values = [ bucket["key_as_string"] ]
+					else:
+						values = bucket["key"].split("\t")
 					newvalues = []
 					for i, value in enumerate(values):
 						if i in ipfields:
@@ -233,7 +240,8 @@ class StaticHandler(BaseWebHandler):
 			"css": "text/css",
 			"html": "text/html",
 			"js": "application/javascript",
-			"png": "image/png"
+			"png": "image/png",
+			"woff": "application/octet-stream"
 		}
 
 	def initialize(self, path, mimetype="application/javascript"):

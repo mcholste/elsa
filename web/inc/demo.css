@@ -7,12 +7,14 @@
 .node text {
   pointer-events: none;
   text-shadow: 0 1px 0 #fff;
+  color: white;
 }
  
 .link {
   fill: none;
   stroke: #000;
   stroke-opacity: .2;
+  color: white;
 }
  
 .link:hover {
@@ -46,3 +48,93 @@
 	white-space: pre;
 }
 
+//@font-face { font-family: "Overwatch"; src: url("http://us.battle.net/forums/static/fonts/bignoodletoo/bignoodletoo.woff") format('woff'); }
+@font-face { font-family: "Overwatch"; src: url("bignoodletoo.woff") format('woff'); }
+.sidebar {
+	background-color: #3e313c;
+	color: white;
+}
+
+.main-content {
+	background-color: white;
+}
+
+#search_container {
+	background-color: black;
+  color: white;
+  float: left;
+}
+
+#search_form {
+  float: left;
+}
+
+#search_form button {
+	font: 30px Overwatch;
+  color: black;
+}
+
+#search_form input {
+	color: black;
+}
+
+#search_form input[name="query"] {
+  font-size: 20px;
+}
+
+.overwatch {
+	font-family: Overwatch;
+}
+
+#action_container {
+	font: 50px Overwatch;
+	color: red;
+	background-color: black;
+}
+
+#viz_container {
+	background-color: white;
+}
+
+.sidebar .masthead {
+	font: 50px Overwatch;
+	color: white;
+	background-color: black;
+}
+
+.tags h1 {
+	font-family: Overwatch;
+}
+
+.tags h2 {
+  font-family: Overwatch;
+}
+
+.tags .tag-label {
+  font: 30px Overwatch;
+}
+
+.tags .tag {
+	font: 25px Overwatch;
+}
+
+.axis {
+  font: 10px sans-serif;
+}
+
+.linechart .axis path,
+.linechart .axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.linechart .axis--x path {
+  display: none;
+}
+
+.linechart .line {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 1.5px;
+}

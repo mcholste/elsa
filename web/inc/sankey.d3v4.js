@@ -132,9 +132,8 @@ d3.sankey = function() {
               is_circular = true;
             }
           });
-          if (!is_circular){
+          if (!is_circular)
             nextNodes.push(link.target);
-          }
         });
       });
       remainingNodes = nextNodes;

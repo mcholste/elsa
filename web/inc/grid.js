@@ -156,6 +156,10 @@ Transcript.prototype.update = function(action, data){
   self.transcript.push([action, scope]);
   $('#transcript_container').empty();
   $('#transcript_container').addClass('respect-whitespace');
+  var h1 = document.createElement('h1');
+  $(h1).addClass('overwatch');
+  h1.innerText = 'Transcript';
+  $('#transcript_container').append(h1);
   var table = document.createElement('table');
   var tbody = document.createElement('tbody');
   var indent_level = 0;
@@ -181,49 +185,87 @@ Transcript.prototype.update = function(action, data){
 
 var ANALYSIS_TREE = new AnalysisTree();
 var TRANSCRIPT = new Transcript();
+var TAGS = {};
+var FAVORITES = {};
 
 $(document).on('ready', function(){
-  $('#search_form input').val('123 OR 456 | groupby srcip,srcport | sankey');
+  //$('#start_date').datepicker();
+  //$('#end_date').datepicker();
+  $('#search_form input[name="query"]').val('class:BRO_HTTP | groupby srcip,site,dstip | sankey');
+  $('#query_submit').on('click', submit_form);
+});
 
-  $('#submit').on('click', function(e){
-    e.preventDefault();
-
-    //if (transcript.length) $('#transcript_container').style('height:500px;');
-
-    var query = $('#search_form input').val();
-    console.log('query: ' + query);
-    $.get('http://localhost:8080/search?q=' + query
-     //+ '&alerts=1'
-     , 
-     function(data, status, xhr){
-      console.log(data, xhr, status);
-      var action = TRANSCRIPT.update('', data);
-      ANALYSIS_TREE.propagate(action);
-      // build_bar_chart(data);
-      // Draw grid of results
-      // var grid_el = document.createElement('div');
-      // grid_el.id = 'grid';
-      // $('body').append(grid_el);
-      var raw_data = [];
-      for (var i = 0, len = data.results.hits.hits.length; i < len; i++){
-        raw_data.push(data.results.hits.hits[i]._source);
-      }
-      $('#grid_container').empty();
-      $('#grid_container').append(get_table(raw_data, raw_data));
-
-      if (typeof(data.query.viz) !== 'undefined'){
-        console.log(data.query.viz);
-        for (var i = 0, len = data.query.viz.length; i < len; i++){
-          var viz = data.query.viz[i][0];
-          for (var k in data.results.aggregations){ 
-            var graph = build_graph_from_hits(data.results.aggregations[k].buckets);
-            viz_map[viz](graph);
+function clean_record(item){
+  for (var k in item){
+    if (typeof(item[k]) === 'object'){
+      for (var j in item[k]){
+        if (typeof(item[k][j]) === 'object'){
+          var subrecord = clean_record(item[k][j]);
+          for (var l in subrecord){
+            item[k + '.' + j + '.' + l] = subrecord[l];
           }
         }
+        else {
+          item[k + '.' + j] = item[k][j];
+        }
       }
-    });
+      delete item[k];
+    }
+  }
+  
+  return item;
+}
+
+function submit_form(e){
+  if (e) e.preventDefault();
+
+  //if (transcript.length) $('#transcript_container').style('height:500px;');
+
+  var query = $('#search_form input[name="query"]').val();
+  var start_date = moment($('#start_date').val()).unix();
+  var end_date = moment($('#end_date').val()).unix();
+  console.log('query: ' + query);
+  var query_string = 'http://localhost:8080/search?q=' + query;
+  if (start_date) query_string += '&start=' + start_date;
+  if (end_date) query_string += '&end=' + end_date;
+
+  $.get(query_string, function(data, status, xhr){
+    console.log(data, xhr, status);
+    var action = TRANSCRIPT.update('SEARCH', data);
+    ANALYSIS_TREE.propagate(action);
+    //build_histogram(data);
+    if (typeof(data.results.aggregations) !== 'undefined' &&
+      typeof(data.results.aggregations.date_histogram) !== 'undefined')
+      build_c3_multi_histogram(data);
+      //build_c3_histogram(data);
+    else if (typeof(data.results.aggregations) !== 'undefined') 
+      build_c3_bar_chart(data);
+    // Draw grid of results
+    // var grid_el = document.createElement('div');
+    // grid_el.id = 'grid';
+    // $('body').append(grid_el);
+    var raw_data = [];
+    for (var i = 0, len = data.results.hits.hits.length; i < len; i++){
+      raw_data.push(clean_record(data.results.hits.hits[i]._source));
+    }
+    
+    $('#grid_container').empty();
+    $('#grid_container').append(get_table(raw_data, raw_data));
+
+    if (typeof(data.query.viz) !== 'undefined'){
+      $('#viz_container').height(500);
+      console.log(data.query.viz);
+      for (var i = 0, len = data.query.viz.length; i < len; i++){
+        var viz = data.query.viz[i][0];
+        for (var k in data.results.aggregations){
+          if (k === 'date_histogram') continue;
+          var graph = build_graph_from_hits(data.results.aggregations[k].buckets);
+          viz_map[viz](graph);
+        }
+      }
+    }
   });
-});
+}
 
 
 function key_as_string(datum){
@@ -231,18 +273,18 @@ function key_as_string(datum){
   return datum.key;
 }
 
-function build_bar_chart(data){
-  for (var k in data.aggregations){
+function build_c3_bar_chart(data){
+  for (var k in data.results.aggregations){
     var new_el = document.createElement('div');
     new_el.id = 'histogram_' + k;
-    $('#container').append(new_el);
+    $('#viz_container').append(new_el);
     var columns = [];
-    for (var i = 0, len = data.aggregations[k].buckets.length; i < len; i++){
-      console.log('bucket', data.aggregations[k].buckets[i]);
+    for (var i = 0, len = data.results.aggregations[k].buckets.length; i < len; i++){
+      console.log('bucket', data.results.aggregations[k].buckets[i]);
 
       var col = [ 
-        key_as_string(data.aggregations[k].buckets[i]),
-        data.aggregations[k].buckets[i].doc_count
+        key_as_string(data.results.aggregations[k].buckets[i]),
+        data.results.aggregations[k].buckets[i].doc_count
       ];
       columns.push(col);
     }
@@ -258,16 +300,358 @@ function build_bar_chart(data){
   }
 }
 
-function build_histogram(data){
-  for (var k in data.aggregations){
-    var new_el = $('#container').appendChild('div');
-    new_el.id = 'histogram_' + k;
-    var x = [], y = [];
-    for (var i = 0, len = data.aggregations[k].buckets.length; i < len; i++){
-      x.push(data.aggregations[k].buckets[i]['key as string']);
-      y.push(data.aggregations[k].buckets[i]['doc count']);
+function build_bar_chart(result_data){
+  if (typeof(result_data.results.aggregations) === 'undefined') return;
+  console.log('building bar chart with ', data);
+  var data = [];
+  for (var i = 0, len = result_data.results.aggregations.date_histogram.buckets.length; i < len; i++){
+    var item = result_data.results.aggregations.date_histogram.buckets[i];
+    console.log('bucket', item);
+    data.push({
+      date: new Date(item.key),
+      count: item.doc_count
+    });
+  }
+  // set the dimensions and margins of the graph
+  var margin = {top: 10, right: 30, bottom: 30, left: 40},
+      width = 960 - margin.left - margin.right,
+      height = 500 - margin.top - margin.bottom;
+
+  // parse the date / time
+  var parseDate = d3.timeParse("%Y-%d-%mT%H:%M:%SZ");
+
+  // set the ranges
+  var min_time = new Date(d3.min(data, function(d){ return new Date(d.date).getTime()}));
+  var max_time = new Date(d3.max(data, function(d){ return new Date(d.date).getTime()}));
+  var x = d3.scaleTime()
+    .domain([min_time, max_time])
+    .rangeRound([0, width]);
+  var y = d3.scaleLinear()
+    .range([height, 0]);
+
+  // set the parameters for the histogram
+  var tick_unit = d3.timeSecond;
+  var time_range = (max_time - min_time)/1000;
+  var min_ticks = 100;
+  if (time_range / 86400 * 30 > min_ticks) tick_unit = d3.timeMonth;
+  else if (time_range / 86400 > min_ticks) tick_unit = d3.timeDay;
+  else if (time_range / 3600 > min_ticks) tick_unit = d3.timeHour;
+  else if (time_range / 60 > min_ticks) tick_unit = d3.timeMinute;
+  var histogram = d3.histogram()
+      .value(function(d) { return d.date; })
+      .domain(x.domain())
+      .thresholds(x.ticks(tick_unit));
+
+  // append the svg object to the body of the page
+  // append a 'group' element to 'svg'
+  // moves the 'group' element to the top left margin
+  var svg = d3.select("#histogram_container").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", 
+          "translate(" + margin.left + "," + margin.top + ")");
+
+  // format the data
+  // data.forEach(function(d) {
+  //   d.date = parseDate(d.date);
+  // });
+
+  // group the data for the bars
+  var bins = histogram(data);
+
+  // Scale the range of the data in the y domain
+  y.domain([0, d3.max(data, function(d) { return d.count; })]);
+
+  // append the bar rectangles to the svg element
+  svg.selectAll("rect")
+      .data(data)
+    .enter().append("rect")
+      .attr("class", "bar")
+      .attr("x", 1)
+      .attr("transform", function(d) {
+        return "translate(" + x(d.date) + "," + y(d.count) + ")"; })
+      .attr("width", function(d) { return x(d.date); })
+      .attr("height", function(d) { return height - y(d.count); });
+
+  // add the x Axis
+  svg.append("g")
+      .attr("transform", "translate(0," + height + ")")
+      .call(d3.axisBottom(x));
+
+  // add the y Axis
+  svg.append("g")
+      .call(d3.axisLeft(y));
+
+}
+
+function build_line_chart(result_data){
+  $('#histogram_container').empty();
+  if (typeof(result_data.results.aggregations) === 'undefined' ||
+    typeof(result_data.results.aggregations.date_histogram) === 'undefined') return;
+  console.log('building histo with ', data);
+  var data = [];
+  for (var i = 0, len = result_data.results.aggregations.date_histogram.buckets.length; i < len; i++){
+    var item = result_data.results.aggregations.date_histogram.buckets[i];
+    console.log('bucket', item);
+    data.push({
+      date: new Date(item.key),
+      count: item.doc_count
+    });
+  }
+  // set the dimensions and margins of the graph
+  var margin = {top: 10, right: 30, bottom: 30, left: 40},
+      width = $('#histogram_container').width() - margin.left - margin.right,
+      height = 300 - margin.top - margin.bottom;
+
+  // parse the date / time
+  var parseDate = d3.timeParse("%Y-%d-%mT%H:%M:%SZ");
+
+  // set the ranges
+  var min_time = new Date(d3.min(data, function(d){ return new Date(d.date).getTime()}));
+  var max_time = new Date(d3.max(data, function(d){ return new Date(d.date).getTime()}));
+  var x = d3.scaleTime()
+    .domain([min_time, max_time])
+    .rangeRound([0, width]);
+  var y = d3.scaleLinear()
+    .range([height, 0]);
+
+  var line = d3.line()
+    .x(function(d) { return x(d.date); })
+    .y(function(d) { return y(d.count); });
+
+  x.domain(d3.extent(data, function(d) { return d.date; }));
+  y.domain(d3.extent(data, function(d) { return d.count; }));
+
+  var svg = d3.select("#histogram_container").append("svg")
+    .attr('class', 'linechart')
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", 
+          "translate(" + margin.left + "," + margin.top + ")");
+  
+
+  svg.append("g")
+      .attr("class", "axis axis--x")
+      .attr("transform", "translate(0," + height + ")")
+      .call(d3.axisBottom(x));
+
+  svg.append("g")
+      .attr("class", "axis axis--y")
+      .call(d3.axisLeft(y))
+    .append("text")
+      .attr("class", "axis-title")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 6)
+      .attr("dy", ".71em")
+      .style("text-anchor", "end")
+      .text("Price ($)");
+
+  svg.append("path")
+      .datum(data)
+      .attr("class", "line")
+      .attr("d", line);
+
+}
+
+function build_histogram(result_data){
+  if (typeof(result_data.results.aggregations) === 'undefined' ||
+    typeof(result_data.results.aggregations.date_histogram) === 'undefined') return;
+  console.log('building histo with ', data);
+  var data = [];
+  for (var i = 0, len = result_data.results.aggregations.date_histogram.buckets.length; i < len; i++){
+    var item = result_data.results.aggregations.date_histogram.buckets[i];
+    console.log('bucket', item);
+    data.push({
+      date: new Date(item.key),
+      count: item.doc_count
+    });
+  }
+  // set the dimensions and margins of the graph
+  var margin = {top: 10, right: 30, bottom: 30, left: 40},
+      width = 960 - margin.left - margin.right,
+      height = 500 - margin.top - margin.bottom;
+
+  // parse the date / time
+  var parseDate = d3.timeParse("%Y-%d-%mT%H:%M:%SZ");
+
+  // set the ranges
+  var min_time = new Date(d3.min(data, function(d){ return new Date(d.date).getTime()}));
+  var max_time = new Date(d3.max(data, function(d){ return new Date(d.date).getTime()}));
+  var x = d3.scaleTime()
+    .domain([min_time, max_time])
+    .rangeRound([0, width]);
+  var y = d3.scaleLinear()
+    .range([height, 0]);
+
+  // set the parameters for the histogram
+  var tick_unit = d3.timeSecond;
+  var time_range = (max_time - min_time)/1000;
+  var min_ticks = 100;
+  if (time_range / 86400 * 30 > min_ticks) tick_unit = d3.timeMonth;
+  else if (time_range / 86400 > min_ticks) tick_unit = d3.timeDay;
+  else if (time_range / 3600 > min_ticks) tick_unit = d3.timeHour;
+  else if (time_range / 60 > min_ticks) tick_unit = d3.timeMinute;
+  var histogram = d3.histogram()
+      .value(function(d) { return d.date; })
+      .domain(x.domain())
+      .thresholds(x.ticks(tick_unit));
+
+  // append the svg object to the body of the page
+  // append a 'group' element to 'svg'
+  // moves the 'group' element to the top left margin
+  var svg = d3.select("#histogram_container").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", 
+          "translate(" + margin.left + "," + margin.top + ")");
+
+  // format the data
+  // data.forEach(function(d) {
+  //   d.date = parseDate(d.date);
+  // });
+
+  // group the data for the bars
+  var bins = histogram(data);
+
+  // Scale the range of the data in the y domain
+  y.domain([0, d3.max(data, function(d) { return d.count; })]);
+
+  // append the bar rectangles to the svg element
+  svg.selectAll("rect")
+      .data(data)
+    .enter().append("rect")
+      .attr("class", "bar")
+      .attr("x", 1)
+      .attr("transform", function(d) {
+        return "translate(" + x(d.date) + "," + y(d.count) + ")"; })
+      .attr("width", function(d) { return x(d.date); })
+      .attr("height", function(d) { return height - y(d.count); });
+
+  // add the x Axis
+  svg.append("g")
+      .attr("transform", "translate(0," + height + ")")
+      .call(d3.axisBottom(x));
+
+  // add the y Axis
+  svg.append("g")
+      .call(d3.axisLeft(y));
+
+}
+
+function build_c3_multi_histogram(data){
+  $('#histogram_container').empty();
+  if (typeof(data.results.aggregations) === 'undefined' ||
+    typeof(data.results.aggregations.date_histogram) === 'undefined' ||
+    data.results.aggregations.date_histogram.buckets.length === 0) return;
+  console.log('building histo with ', data);
+  
+  
+  var div = document.createElement('div');
+  div.id = 'date_histogram';
+  $(div).width('100%');
+  
+  $('#histogram_container').append(div);
+  var json_data = [];
+  var fields = {
+    hostname: {}
+  };
+  fields['class'] = {};
+  for (var i = 0, len = data.results.aggregations.date_histogram.buckets.length; i < len; i++){
+    var item = data.results.aggregations.date_histogram.buckets[i];
+    var to_push = {
+      date: item.key
+    };
+  
+    ['hostname', 'class'].forEach(function(field){
+      for (var j = 0, jlen = item[field].buckets.length; j < jlen; j++){
+        var subitem = item[field].buckets[j];
+        //if (!subitem.doc_count) continue;
+        fields[field][field + '.' + subitem.key] = 'spline';
+        to_push[field + '.' + subitem.key] = subitem.doc_count;
+      }
+    });
+    
+    if (Object.keys(to_push).length < 2) continue;
+    console.log('to_push', to_push);
+    json_data.push(to_push);
+  }
+
+  var combined_fields = [];
+  for (var field in fields){
+    for (var subfield in fields[field]){
+      combined_fields.push(subfield);
     }
   }
+
+  var chart = c3.generate({
+    bindto: div,
+    data: {
+      json: json_data,
+      keys: {
+        x: 'date',
+        value: combined_fields
+      },
+      xFormat: '%Y-%m-%dT%H:%M:%S.%LZ',
+      type: 'bar',
+      types: fields['hostname'],
+      groups: [
+        Object.keys(fields['hostname']),
+        Object.keys(fields['class'])
+      ]
+    },
+    axis: {
+      x: {
+        type: 'timeseries',
+        tick: {
+          format: '%Y-%m-%dT%H:%M:%S.%LZ'
+        }
+      }
+    }
+  });
+}
+
+function build_c3_histogram(data){
+  if (typeof(data.results.aggregations) === 'undefined' ||
+    typeof(data.results.aggregations.date_histogram) === 'undefined') return;
+  console.log('building histo with ', data);
+  
+  
+  var div = document.createElement('div');
+  div.id = 'date_histogram';
+  $(div).width('100%');
+  $('#histogram_container').empty();
+  $('#histogram_container').append(div);
+  var x = ['x'], y = ['count'];
+  for (var i = 0, len = data.results.aggregations.date_histogram.buckets.length; i < len; i++){
+    var item = data.results.aggregations.date_histogram.buckets[i];
+    console.log('bucket', item);
+    x.push(new Date(item.key));
+    y.push(item.doc_count);
+  }
+  console.log('x', JSON.stringify(x), 'y', JSON.stringify(y));
+  var chart = c3.generate({
+    bindto: div,
+    data: {
+      x: 'x',
+      xFormat: '%Y-%m-%dT%H:%M:%S.%LZ',
+      columns: [x, y]
+    },
+    axis: {
+      x: {
+        type: 'timeseries',
+        tick: {
+          format: '%Y-%m-%dT%H:%M:%S.%LZ'
+        }
+      }
+    }
+  });
+}
+
+function set_current_action(action){
+  $('#action_container').text(action);
 }
 
 function get_table(data, full_data, onclicks, onhovers, reorder, sortby, sortdir, filter_field, filter_text){
@@ -303,7 +687,7 @@ function get_table(data, full_data, onclicks, onhovers, reorder, sortby, sortdir
   console.log('reorder', reorder);
   if (reorder){
     console.log('reordering');
-    var preferredCols = ['meta_ts', 'class', 'program', 'rawmsg'];
+    var preferredCols = ['@timestamp', 'class', 'program', 'rawmsg'];
 
     var ret = [];
     var others = [];
@@ -381,7 +765,7 @@ function get_table(data, full_data, onclicks, onhovers, reorder, sortby, sortdir
   var thead_el = document.createElement('thead');
   //$(thead_el).addClass('etch-complex-table__thead');
   var tr_el = document.createElement('tr');
-  $(tr_el).addClass('etch-complex-table__thead__row');
+  //$(tr_el).addClass('etch-complex-table__thead__row');
   for (var i = 0, len = cols.length; i < len; i++){
     var field = cols[i];
     // Figure out if we are sorting by this col and if it is desc
@@ -482,75 +866,7 @@ function get_table(data, full_data, onclicks, onhovers, reorder, sortby, sortdir
   table_el.appendChild(tbody_el);
   $(table_el).contextMenu({
     selector: 'td',
-    callback: function(key, options) {
-      var content = $(this).text();
-      console.log(this, content, key, options);
-      var key = key.toUpperCase();
-      
-      if (key === 'PIVOT'){
-        var scope = TRANSCRIPT.update(key, content);
-        ANALYSIS_TREE.propagate(content, 
-          TRANSCRIPT.transcript[TRANSCRIPT.transcript.length - 1], true);
-      }
-      else if (key === 'NOTE'){
-        var div = document.createElement('div');
-        div.id = 'write-note';
-        var form = document.createElement('form');
-        div.appendChild(form);
-        var fieldset = document.createElement('fieldset');
-        form.appendChild(fieldset);
-        var label = document.createElement('label');
-        label.innerHTML = 'Note';
-        fieldset.appendChild(label);
-        var input = document.createElement('input');
-        input.type = 'text';
-        input.size = 80;
-        input.name = 'note';
-        input.id = 'note';
-        $(input).attr('class', 'text ui-widget-content ui-corner-all');
-        fieldset.appendChild(input);
-        var submit = document.createElement('input');
-        submit.type = 'submit';
-        $(submit).attr('tabindex', -1);
-        $(submit).attr('style', 'position:absolute; top:-1000px');
-        fieldset.appendChild(submit);
-        
-        $('#transcript_container').append(div);
-        // modal
-        var dialog; dialog = $( "#write-note" ).dialog({
-          autoOpen: false,
-          height: 200,
-          width: 900,
-          modal: true,
-          buttons: {
-            //"Create an account": function(){ console.log('here'); },
-            Cancel: function() {
-              dialog.dialog( "close" );
-            }
-          },
-          close: function() {
-            form[ 0 ].reset();
-            allFields.removeClass( "ui-state-error" );
-          }
-        });
-     
-        var form; form = dialog.find( "form" ).on( "submit", function( event ) {
-          event.preventDefault();
-          console.log('SUBMIT', this);
-          TRANSCRIPT.update('NOTE', $('#note').val());
-          dialog.dialog('close');
-        });
-     
-        //$( "#create-user" ).button().on( "click", function() {
-          dialog.dialog( "open" );
-        //});
-      }
-      else {
-        var scope = TRANSCRIPT.update(key, content);
-        ANALYSIS_TREE.propagate(content, 
-          TRANSCRIPT.transcript[TRANSCRIPT.transcript.length - 1]);
-      }
-    },
+    callback: handle_context_menu_callback,
     items: {
       pivot: {name: 'Pivot', icon: function(){ return 'fa fa-level-down fa-fw'} },
       sep: '-----',
@@ -560,7 +876,7 @@ function get_table(data, full_data, onclicks, onhovers, reorder, sortby, sortdir
       sep2: '-----',
       tag: {name: 'Tag', icon: function(){ return 'fa fa-hashtag fa-fw'} },
       sep3: '-----',
-      like: {name: 'Like', icon: function(){ return 'fa fa-heart fa-fw'} },
+      favorite: {name: 'Favorite', icon: function(){ return 'fa fa-star fa-fw'} },
     }
   });
 
@@ -568,6 +884,209 @@ function get_table(data, full_data, onclicks, onhovers, reorder, sortby, sortdir
   //   console.log('clicked', this);
   // });
   return table_el;
+}
+
+function handle_context_menu_callback(key, options) {
+  var content = $(this).text();
+  content = content.split('\n')[0];
+  console.log(this, content, key, options);
+  var key = key.toUpperCase();
+  
+  if (key === 'PIVOT'){
+    var scope = TRANSCRIPT.update(key, content);
+    ANALYSIS_TREE.propagate(content, 
+      TRANSCRIPT.transcript[TRANSCRIPT.transcript.length - 1], true);
+    set_current_action(scope);
+    $('#search_form input').val(content);
+    submit_form();
+  }
+  else if (key === 'NOTE'){
+    create_note_dialog(content);
+  }
+  else if (key === 'SCOPE'){
+    var scope = TRANSCRIPT.update(key, content);
+    set_current_action(scope);
+    ANALYSIS_TREE.propagate(content, 
+      TRANSCRIPT.transcript[TRANSCRIPT.transcript.length - 1]);
+  }
+  else if (key === 'TAG'){
+    create_tag_dialog(content);
+  }
+  else if (key === 'FAVORITE'){
+    FAVORITES[content] = TRANSCRIPT.counter();
+    update_favorites();
+    var scope = TRANSCRIPT.update(key, content);
+  }
+  else {
+    var scope = TRANSCRIPT.update(key, content);
+    ANALYSIS_TREE.propagate(content, 
+      TRANSCRIPT.transcript[TRANSCRIPT.transcript.length - 1]);
+  }
+};
+
+function create_note_dialog(content){
+  var div = document.createElement('div');
+  div.id = 'write-note';
+  div.title = 'Create Note';
+  var span = document.createElement('h1');
+  span.innerText = content;
+  $(span).addClass('overwatch');
+  div.appendChild(span);
+  var form = document.createElement('form');
+  div.appendChild(form);
+  var fieldset = document.createElement('fieldset');
+  form.appendChild(fieldset);
+  var label = document.createElement('label');
+  label.innerHTML = 'Note';
+  fieldset.appendChild(label);
+  var input = document.createElement('input');
+  input.type = 'text';
+  input.size = 80;
+  input.name = 'note';
+  input.id = 'note';
+  $(input).attr('class', 'text ui-widget-content ui-corner-all');
+  fieldset.appendChild(input);
+  var submit = document.createElement('input');
+  submit.type = 'submit';
+  $(submit).attr('tabindex', -1);
+  $(submit).attr('style', 'position:absolute; top:-1000px');
+  fieldset.appendChild(submit);
+  
+  $('#transcript_container').append(div);
+
+  function on_submit(event){
+    event.preventDefault();
+    console.log('SUBMIT', this);
+    TRANSCRIPT.update('NOTE', content + ' ' + $('#note').val());
+    dialog.dialog('close');
+    $('#write-note').remove();
+  }
+  // modal
+  var dialog; dialog = $( "#write-note" ).dialog({
+    autoOpen: false,
+    height: 400,
+    width: 900,
+    modal: true,
+    buttons: {
+      "Ok": on_submit,
+      Cancel: function() {
+        dialog.dialog( "close" );
+      }
+    },
+    close: function() {
+      form[ 0 ].reset();
+    }
+  });
+
+  var form; form = dialog.find( "form" ).on( "submit", on_submit);
+
+  //$( "#create-user" ).button().on( "click", function() {
+    dialog.dialog( "open" );
+  //});
+}
+
+function create_tag_dialog(content){
+  var div = document.createElement('div');
+  div.id = 'create-tag';
+  var form = document.createElement('form');
+  div.appendChild(form);
+  var fieldset = document.createElement('fieldset');
+  form.appendChild(fieldset);
+  var label = document.createElement('label');
+  label.innerHTML = 'Tag';
+  fieldset.appendChild(label);
+  var input = document.createElement('input');
+  input.type = 'text';
+  input.size = 20;
+  input.name = 'tag';
+  input.id = 'tag';
+  $(input).attr('class', 'text ui-widget-content ui-corner-all');
+  fieldset.appendChild(input);
+  var submit = document.createElement('input');
+  submit.type = 'submit';
+  $(submit).attr('tabindex', -1);
+  $(submit).attr('style', 'position:absolute; top:-1000px');
+  fieldset.appendChild(submit);
+  
+  document.body.appendChild(div);
+
+  function on_submit(event){
+    event.preventDefault();
+    console.log('TAG', this);
+    var tagval = $('#tag').val();
+    TRANSCRIPT.update('TAG', tagval + ' ' + content);
+    if (typeof(TAGS[tagval]) === 'undefined') TAGS[tagval] = {};
+    TAGS[tagval][content] = TRANSCRIPT.counter();
+    update_tags();
+    dialog.dialog('close');
+    //document.body.removeChild(div);
+  }
+  // modal
+  var dialog; dialog = $( "#create-tag" ).dialog({
+    autoOpen: false,
+    height: 200,
+    width: 300,
+    modal: true,
+    buttons: {
+      "Ok": on_submit,
+      Cancel: function() {
+        dialog.dialog( "close" );
+      }
+    },
+    close: function() {
+      form[ 0 ].reset();
+    }
+  });
+
+  var form; form = dialog.find( "form" ).on( "submit", on_submit);
+  dialog.dialog( "open" );
+}
+
+function update_tags(){
+  $('#tags').empty();
+  for (var tag in TAGS){
+    var div = document.createElement('div');
+    var span = document.createElement('span');
+    span.innerText = '#' + tag;
+    $(span).addClass('tag-label');
+    div.appendChild(span);
+    var table = document.createElement('table');
+    div.appendChild(table);
+    var tbody = document.createElement('tbody');
+    table.appendChild(tbody);
+    for (var item in TAGS[tag]){
+      var row = document.createElement('tr');
+      tbody.appendChild(row);
+      var cell = document.createElement('td');
+      $(cell).addClass('tag');
+      row.appendChild(cell);
+      var text = document.createTextNode(item + ' ' + TAGS[tag][item]);
+      cell.appendChild(text);
+    }
+    $('#tags').append(div);
+  }
+}
+
+function update_favorites(content){
+  $('#favorites').empty();
+  var div = document.createElement('div');
+  var table = document.createElement('table');
+  div.appendChild(table);
+  var tbody = document.createElement('tbody');
+  table.appendChild(tbody);
+  for (var favorite in FAVORITES){  
+    var row = document.createElement('tr');
+    tbody.appendChild(row);
+    var cell = document.createElement('td');
+    $(cell).addClass('tag');
+    row.appendChild(cell);
+    var img = document.createElement('i');
+    $(img).addClass('fa fa-star');
+    cell.appendChild(img);
+    var text = document.createTextNode(favorite + ' ' + FAVORITES[favorite]);
+    cell.appendChild(text);
+  }
+  $('#favorites').append(div);
 }
 
 function add_node(graph, name){
@@ -667,7 +1186,8 @@ function build_sankey(graph){
    
   var formatNumber = d3.format(",.0f"),    // zero decimal places
       format = function(d) { return formatNumber(d) + " " + units; },
-      color = d3.scaleOrdinal(d3.schemeCategory20);
+      //color = d3.scaleOrdinal(d3.schemeCategory20);
+      color = d3.scale.category20();
 
   // var el = document.createElement('div');
   // el.id = 'chart';
@@ -732,9 +1252,14 @@ function build_sankey(graph){
       .attr("class", "node")
       .attr("transform", function(d) { 
       return "translate(" + d.x + "," + d.y + ")"; })
-    .call(d3.drag()
-      .subject(function(d) { return d; })
-      .on("start", function() { 
+    //.call(d3.drag()
+    //  .subject(function(d) { return d; })
+    //.on("start", function() {
+    // this.parentNode.appendChild(this); })
+    // .on("drag", dragmove));
+    .call(d3.behavior.drag()
+      .origin(function(d) { return d; })
+      .on("dragstart", function() {
       this.parentNode.appendChild(this); })
       .on("drag", dragmove));
 
@@ -761,6 +1286,22 @@ function build_sankey(graph){
     .filter(function(d) { return d.x < width / 2; })
     .attr("x", 6 + sankey.nodeWidth())
     .attr("text-anchor", "start");
+
+  $.contextMenu({
+    selector: '#viz_container rect',
+    callback: handle_context_menu_callback,
+    items: {
+      pivot: {name: 'Pivot', icon: function(){ return 'fa fa-level-down fa-fw'} },
+      sep: '-----',
+      scope: {name: 'Scope', icon: function(){ return 'fa fa-binoculars fa-fw'} },
+      sep1: '-----',
+      note: {name: 'Note', icon: function(){ return 'fa fa-comment fa-fw'} },
+      sep2: '-----',
+      tag: {name: 'Tag', icon: function(){ return 'fa fa-hashtag fa-fw'} },
+      sep3: '-----',
+      favorite: {name: 'Favorite', icon: function(){ return 'fa fa-star fa-fw'} },
+    }
+  });
 
   // the function for moving the nodes
   function dragmove(d) {
