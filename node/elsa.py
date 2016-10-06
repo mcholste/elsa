@@ -171,7 +171,7 @@ class Distributor:
 				line = self.decorator.decorate(line)
 				line = json.dumps(line)
 			except Exception as e:
-				self.log.error("Invalid JSON: %s, Error: %r" % (line, e))
+				self.log.exception("Invalid JSON: %s" % (line), exc_info=e)
 				continue
 			for d in self.destinations:
 				d["queue"].put(line)
@@ -226,7 +226,7 @@ class Decorator:
 			"@timestamp": timestamp,
 			"program": doc.get("PROGRAM", ""),
 			"header": doc.get("LEGACY_MSGHDR", ""),
-			"hostname": doc.get("HOST", "")
+			"host": doc.get("HOST", "")
 		}
 		
 		# Cleanup syslog-ng fields
@@ -236,7 +236,9 @@ class Decorator:
 		
 		
 		for k, v in doc.iteritems():
-			if k == "_classifier" or k in self.ignore_list:
+			if k == "_classifier" or \
+				k in self.ignore_list or \
+				v == "-":
 				continue
 			k = k.lower()
 			ret[k] = v

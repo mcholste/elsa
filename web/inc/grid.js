@@ -189,9 +189,10 @@ var TAGS = {};
 var FAVORITES = {};
 
 $(document).on('ready', function(){
+  $('#start_date').val('2016-09-09T00:00:00');
   //$('#start_date').datepicker();
   //$('#end_date').datepicker();
-  $('#search_form input[name="query"]').val('class:BRO_HTTP | groupby srcip,site,dstip | sankey');
+  $('#search_form input[name="query"]').val('class:BRO_WEIRD | groupby srcip,name,dstip | sankey');
   $('#query_submit').on('click', submit_form);
 });
 
@@ -556,7 +557,7 @@ function build_c3_multi_histogram(data){
   $('#histogram_container').append(div);
   var json_data = [];
   var fields = {
-    hostname: {}
+    host: {}
   };
   fields['class'] = {};
   for (var i = 0, len = data.results.aggregations.date_histogram.buckets.length; i < len; i++){
@@ -565,7 +566,7 @@ function build_c3_multi_histogram(data){
       date: item.key
     };
   
-    ['hostname', 'class'].forEach(function(field){
+    ['host', 'class'].forEach(function(field){
       for (var j = 0, jlen = item[field].buckets.length; j < jlen; j++){
         var subitem = item[field].buckets[j];
         //if (!subitem.doc_count) continue;
@@ -596,9 +597,9 @@ function build_c3_multi_histogram(data){
       },
       xFormat: '%Y-%m-%dT%H:%M:%S.%LZ',
       type: 'bar',
-      types: fields['hostname'],
+      types: fields['host'],
       groups: [
-        Object.keys(fields['hostname']),
+        Object.keys(fields['host']),
         Object.keys(fields['class'])
       ]
     },
@@ -687,7 +688,7 @@ function get_table(data, full_data, onclicks, onhovers, reorder, sortby, sortdir
   console.log('reorder', reorder);
   if (reorder){
     console.log('reordering');
-    var preferredCols = ['@timestamp', 'class', 'program', 'rawmsg'];
+    var preferredCols = ['@timestamp', 'class', 'program', 'srcip', 'srcport', 'dstip', 'dstport', 'rawmsg'];
 
     var ret = [];
     var others = [];
@@ -793,6 +794,7 @@ function get_table(data, full_data, onclicks, onhovers, reorder, sortby, sortdir
     var input_el = document.createElement('input');
     input_el.type = 'text';
     input_el.name = field;
+    input_el.size = 4;
     if (field === filter_field){
       input_el.value = filter_text;
     }
@@ -839,6 +841,7 @@ function get_table(data, full_data, onclicks, onhovers, reorder, sortby, sortdir
       }
       $(td_el).attr('data_field', cols[j]);
       $(td_el).attr('data_value', encodeURIComponent(text));
+      $(td_el).addClass('grid-cell');
       var text_el = document.createTextNode(text);
       if (typeof(onclicks[ cols[j] ]) !== 'undefined' 
         || typeof(onhovers[ cols[j] ]) !== 'undefined'){
@@ -856,6 +859,17 @@ function get_table(data, full_data, onclicks, onhovers, reorder, sortby, sortdir
       }
       else {
         td_el.appendChild(text_el);
+      }
+
+      for (var tag in TAGS){
+        for (var tag_value in TAGS[tag]){
+          if (text == tag_value){
+            tag_text = document.createElement('span');
+            tag_text.innerText = '#' + tag + ' ';
+            $(tag_text).addClass('tag');
+            td_el.appendChild(tag_text);
+          }
+        }
       }
       
       tr_el.appendChild(td_el);
@@ -897,7 +911,7 @@ function handle_context_menu_callback(key, options) {
     ANALYSIS_TREE.propagate(content, 
       TRANSCRIPT.transcript[TRANSCRIPT.transcript.length - 1], true);
     set_current_action(scope);
-    $('#search_form input').val(content);
+    $('#search_form input[name="search"]').val(content);
     submit_form();
   }
   else if (key === 'NOTE'){

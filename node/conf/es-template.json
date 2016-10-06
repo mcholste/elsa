@@ -87,6 +87,13 @@
 					"analyzer": "elsa_ngram",
 					"copy_to": "raw.subject"
 				},
+				"useragent": {
+					"type": "string",
+					"store": false,
+					"index": "analyzed",
+					"analyzer": "elsa_ngram",
+					"copy_to": "raw.useragent"
+				},
 				"ip": {
 					"type": "ip"
 				},

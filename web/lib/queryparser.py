@@ -98,9 +98,9 @@ class Parser:
 					"interval": interval
 				},
 				"aggs": {
-					"hostname": {
+					"host": {
 						"terms": {
-							"field": "raw.hostname",
+							"field": "raw.host",
 							"size": max_buckets
 						}
 					},

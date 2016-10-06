@@ -87,7 +87,7 @@
 }
 
 #action_container {
-	font: 50px Overwatch;
+	font: 30px Overwatch;
 	color: red;
 	background-color: black;
 }
@@ -137,4 +137,13 @@
   fill: none;
   stroke: steelblue;
   stroke-width: 1.5px;
+}
+
+.grid-cell .tag {
+  font: 14px Overwatch;
+  color: red;
+}
+
+.grid-cell {
+  font: 10px Lato;
 }

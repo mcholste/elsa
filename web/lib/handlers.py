@@ -153,10 +153,10 @@ class SearchHandler(BaseHandler):
 					if bucket.has_key("key_as_string"):
 						values = [ bucket["key_as_string"] ]
 					else:
-						values = bucket["key"].split("\t")
+						values = str(bucket["key"]).split("\t")
 					newvalues = []
 					for i, value in enumerate(values):
-						if i in ipfields:
+						if i in ipfields and "." not in value:
 							newvalues.append(socket.inet_ntoa(struct.pack("!I", int(value))))
 						else:
 							newvalues.append(value)
