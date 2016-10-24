@@ -123,11 +123,11 @@ d3.sankey = function() {
         node.x = x;
         node.dx = nodeWidth;
         node.sourceLinks.forEach(function(link) {
-          console.log('linking ' + node.name + ' to ' + link.target.name);
-          console.log(nextNodes.length, remainingNodes.length);
+          // console.log('linking ' + node.name + ' to ' + link.target.name);
+          // console.log(nextNodes.length, remainingNodes.length);
           var is_circular = false;
           link.target.sourceLinks.forEach(function(sourcelink){
-            console.log('pushing', node.name, sourcelink.source.name, sourcelink.target.name);  
+            //console.log('pushing', node.name, sourcelink.source.name, sourcelink.target.name);  
             if (node.name === sourcelink.target.name){
               is_circular = true;
             }

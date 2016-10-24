@@ -51,12 +51,18 @@
 //@font-face { font-family: "Overwatch"; src: url("http://us.battle.net/forums/static/fonts/bignoodletoo/bignoodletoo.woff") format('woff'); }
 @font-face { font-family: "Overwatch"; src: url("bignoodletoo.woff") format('woff'); }
 .sidebar {
-	background-color: #3e313c;
+	//background-color: #3e313c;
+  background-color: rgba(0,0,0,.4);;
 	color: white;
 }
 
+body {
+  background-color: rgb(40,40,40);
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIxLjIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IiB3aWR0aD0iMTAwcHgiIGhlaWdodD0iMTAwcHgiIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiB4bWw6c3BhY2U9InByZXNlcnZlIj48ZyBjbGFzcz0iZ3JpZCIgc3Ryb2tlPSIjODg4IiBvcGFjaXR5PSIwLjIiPjxwb2x5bGluZSBmaWxsPSJub25lIiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZS1saW5lY2FwPSJzcXVhcmUiIHN0cm9rZS1taXRlcmxpbWl0PSIyIiAgcG9pbnRzPSIwLjUgMTAwLjUgMC41IDAuNSAxMDAuNSAwLjUiPjwvcG9seWxpbmU+PHBvbHlsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZS13aWR0aD0iMC41IiBzdHJva2UtbGluZWNhcD0ic3F1YXJlIiBzdHJva2UtbWl0ZXJsaW1pdD0iMiIgIHBvaW50cz0iMC41IDEwLjUgMTAwLjUgMTAuNSI+PC9wb2x5bGluZT48cG9seWxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlLXdpZHRoPSIwLjUiIHN0cm9rZS1saW5lY2FwPSJzcXVhcmUiIHN0cm9rZS1taXRlcmxpbWl0PSIyIiAgcG9pbnRzPSIxMC41IDAuNSAxMC41IDEwMC41Ij48L3BvbHlsaW5lPjxwb2x5bGluZSBmaWxsPSJub25lIiBzdHJva2Utd2lkdGg9IjAuNSIgc3Ryb2tlLWxpbmVjYXA9InNxdWFyZSIgc3Ryb2tlLW1pdGVybGltaXQ9IjIiICBwb2ludHM9IjAuNSAyMC41IDEwMC41IDIwLjUiPjwvcG9seWxpbmU+PHBvbHlsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZS13aWR0aD0iMC41IiBzdHJva2UtbGluZWNhcD0ic3F1YXJlIiBzdHJva2UtbWl0ZXJsaW1pdD0iMiIgIHBvaW50cz0iMjAuNSAwLjUgMjAuNSAxMDAuNSI+PC9wb2x5bGluZT48cG9seWxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlLXdpZHRoPSIwLjUiIHN0cm9rZS1saW5lY2FwPSJzcXVhcmUiIHN0cm9rZS1taXRlcmxpbWl0PSIyIiAgcG9pbnRzPSIwLjUgMzAuNSAxMDAuNSAzMC41Ij48L3BvbHlsaW5lPjxwb2x5bGluZSBmaWxsPSJub25lIiBzdHJva2Utd2lkdGg9IjAuNSIgc3Ryb2tlLWxpbmVjYXA9InNxdWFyZSIgc3Ryb2tlLW1pdGVybGltaXQ9IjIiICBwb2ludHM9IjMwLjUgMC41IDMwLjUgMTAwLjUiPjwvcG9seWxpbmU+PHBvbHlsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZS13aWR0aD0iMC41IiBzdHJva2UtbGluZWNhcD0ic3F1YXJlIiBzdHJva2UtbWl0ZXJsaW1pdD0iMiIgIHBvaW50cz0iMC41IDQwLjUgMTAwLjUgNDAuNSI+PC9wb2x5bGluZT48cG9seWxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlLXdpZHRoPSIwLjUiIHN0cm9rZS1saW5lY2FwPSJzcXVhcmUiIHN0cm9rZS1taXRlcmxpbWl0PSIyIiAgcG9pbnRzPSI0MC41IDAuNSA0MC41IDEwMC41Ij48L3BvbHlsaW5lPjxwb2x5bGluZSBmaWxsPSJub25lIiBzdHJva2Utd2lkdGg9IjAuNSIgc3Ryb2tlLWxpbmVjYXA9InNxdWFyZSIgc3Ryb2tlLW1pdGVybGltaXQ9IjIiICBwb2ludHM9IjAuNSA1MC41IDEwMC41IDUwLjUiPjwvcG9seWxpbmU+PHBvbHlsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZS13aWR0aD0iMC41IiBzdHJva2UtbGluZWNhcD0ic3F1YXJlIiBzdHJva2UtbWl0ZXJsaW1pdD0iMiIgIHBvaW50cz0iNTAuNSAwLjUgNTAuNSAxMDAuNSI+PC9wb2x5bGluZT48cG9seWxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlLXdpZHRoPSIwLjUiIHN0cm9rZS1saW5lY2FwPSJzcXVhcmUiIHN0cm9rZS1taXRlcmxpbWl0PSIyIiAgcG9pbnRzPSIwLjUgNjAuNSAxMDAuNSA2MC41Ij48L3BvbHlsaW5lPjxwb2x5bGluZSBmaWxsPSJub25lIiBzdHJva2Utd2lkdGg9IjAuNSIgc3Ryb2tlLWxpbmVjYXA9InNxdWFyZSIgc3Ryb2tlLW1pdGVybGltaXQ9IjIiICBwb2ludHM9IjYwLjUgMC41IDYwLjUgMTAwLjUiPjwvcG9seWxpbmU+PHBvbHlsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZS13aWR0aD0iMC41IiBzdHJva2UtbGluZWNhcD0ic3F1YXJlIiBzdHJva2UtbWl0ZXJsaW1pdD0iMiIgIHBvaW50cz0iMC41IDcwLjUgMTAwLjUgNzAuNSI+PC9wb2x5bGluZT48cG9seWxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlLXdpZHRoPSIwLjUiIHN0cm9rZS1saW5lY2FwPSJzcXVhcmUiIHN0cm9rZS1taXRlcmxpbWl0PSIyIiAgcG9pbnRzPSI3MC41IDAuNSA3MC41IDEwMC41Ij48L3BvbHlsaW5lPjxwb2x5bGluZSBmaWxsPSJub25lIiBzdHJva2Utd2lkdGg9IjAuNSIgc3Ryb2tlLWxpbmVjYXA9InNxdWFyZSIgc3Ryb2tlLW1pdGVybGltaXQ9IjIiICBwb2ludHM9IjAuNSA4MC41IDEwMC41IDgwLjUiPjwvcG9seWxpbmU+PHBvbHlsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZS13aWR0aD0iMC41IiBzdHJva2UtbGluZWNhcD0ic3F1YXJlIiBzdHJva2UtbWl0ZXJsaW1pdD0iMiIgIHBvaW50cz0iODAuNSAwLjUgODAuNSAxMDAuNSI+PC9wb2x5bGluZT48cG9seWxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlLXdpZHRoPSIwLjUiIHN0cm9rZS1saW5lY2FwPSJzcXVhcmUiIHN0cm9rZS1taXRlcmxpbWl0PSIyIiAgcG9pbnRzPSIwLjUgOTAuNSAxMDAuNSA5MC41Ij48L3BvbHlsaW5lPjxwb2x5bGluZSBmaWxsPSJub25lIiBzdHJva2Utd2lkdGg9IjAuNSIgc3Ryb2tlLWxpbmVjYXA9InNxdWFyZSIgc3Ryb2tlLW1pdGVybGltaXQ9IjIiICBwb2ludHM9IjkwLjUgMC41IDkwLjUgMTAwLjUiPjwvcG9seWxpbmU+PC9nPjwvc3ZnPg==');
+}
+
 .main-content {
-	background-color: white;
+	//background-color: rgb(40,40,40);
 }
 
 #search_container {
@@ -89,17 +95,70 @@
 #action_container {
 	font: 30px Overwatch;
 	color: red;
-	background-color: black;
+	background-color: rgba(0,0,0,.4);;
 }
 
-#viz_container {
-	background-color: white;
+#notification_container {
+  font: 30px Overwatch;
+  color: green;
+  background-color: rgba(0,0,0,.4);;
+}
+
+.pivot_reference {
+  color: green;
+}
+
+.foreground {
+  visibility: normal;
+}
+
+.background {
+  visibility: hidden;
+}
+
+.golden {
+  color: gold;
+}
+
+#modal_outer {
+  position: absolute;
+  top: 200px;
+  left: 600px;
+  background: white;
+  z-index: 1000;
+}
+
+#modal {
+  background: black;
+  color: white;
+  font-size: 400px;
+  margin: 10px;
+}
+
+//#viz_container {
+//  background-color: white;
+//}
+#viz_container svg text {
+  fill: white;
+  color: white;
+}
+
+#transcript_container {
+  color: white;
+  background-color: rgba(0,0,0,.4);;
+}
+
+#transcript_container td {
+  font: 15px Courier;
+}
+
+.masthead {
+  color: white;
+  background-color: black;
 }
 
 .sidebar .masthead {
 	font: 50px Overwatch;
-	color: white;
-	background-color: black;
 }
 
 .tags h1 {
@@ -146,4 +205,45 @@
 
 .grid-cell {
   font: 10px Lato;
+}
+
+#grid_container thead {
+  color: white;
+  background-color: rgba(0,0,0,.4);;
+}
+
+#grid_container input {
+  color: rgba(0,0,0,.4);;
+}
+.pure-table-even {
+  color: white;
+  background-color: rgba(0,0,0,.3);
+}
+
+.pure-table-odd td {
+  color: white;
+  background-color: rgba(0,0,0,.5);
+}
+
+.pure-g {
+  letter-spacing: normal;
+}
+
+.c3 text {
+  stroke: white;
+  fill: white;
+}
+
+.c3-axis line, .c3-axis path {
+  stroke: white;
+  fill: rgb(40,40,40);
+}
+
+.c3-legend-item {
+  font: 14px Lato;
+}
+
+#date_histogram svg {
+  //background-color: rgb(40,40,40);
+  font: 13px Lato;
 }

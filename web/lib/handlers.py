@@ -2,6 +2,8 @@ import os
 import sys
 import logging
 import datetime
+import zlib
+import base64
 import copy
 import socket
 import struct
@@ -39,6 +41,7 @@ def merge(src, dst):
 	return dst
 
 TORNADO_ROUTE = "(.+)"
+DEFAULT_USER = "default"
 
 class BaseHandler(tornado.web.RequestHandler):
 	def initialize(self, conf,
@@ -114,13 +117,17 @@ class BaseHandler(tornado.web.RequestHandler):
 
 class SearchHandler(BaseHandler):
 	def __init__(self, application, request, **kwargs):
+		self.db = kwargs["db"]
+		del kwargs["db"]
 		super(SearchHandler, self).__init__(application, request, **kwargs)
 		self.log = logging.getLogger("elsa.search_handler")
 		self.parser = Parser()
 		self.ip_fields = frozenset(["srcip", "dstip", "ip"])
+		
 
 	def initialize(self, *args, **kwargs):
 		super(SearchHandler, self).initialize(*args, **kwargs)
+		self.user = DEFAULT_USER
 
 	# Using the post() coroutine
 	def get(self, uri):
@@ -162,12 +169,35 @@ class SearchHandler(BaseHandler):
 							newvalues.append(value)
 					bucket["keys"] = newvalues
 					bucket["key"] = "-".join(newvalues)
+		
+		# Build scope
+		scope = self.request.es_query["query"]["bool"]["must"][0]["query"]["query_string"]["query"]
+		if self.request.parsed.has_key("groupby"):
+			scope += " (" + ",".join(self.request.parsed["groupby"][1:]) + ")"
+
 		body = {
 			"results": body,
 			"query": self.request.parsed,
 			"raw_query": self.request.raw_query,
-			"es_query": self.request.es_query
+			"es_query": self.request.es_query,
+			"scope": scope
 		}
+
+		# Log to results
+		self.db.execute("INSERT INTO results (user_id, results, timestamp) " +\
+			"VALUES ((SELECT id FROM users WHERE user=?),?,?)", 
+			(DEFAULT_USER, base64.encodestring(zlib.compress(json.dumps(body))), time()))
+		id = self.db.execute("SELECT id FROM results " +\
+			"WHERE user_id=(SELECT id FROM users WHERE user=?) " +\
+			"ORDER BY id DESC LIMIT 1", (self.user,)).fetchone()
+		body["id"] = id["id"]
+
+		self.db.execute("INSERT INTO transcript (user_id, action, scope, ref_id, timestamp) " +\
+			"VALUES ((SELECT id FROM users WHERE user=?),?,?,?,?)",
+			(self.user, "SEARCH", scope, id["id"], time()))
+		newid = self.db.execute("SELECT id FROM transcript " +\
+			"ORDER BY timestamp DESC LIMIT 1").fetchone()
+		body["transcript_id"] = newid["id"]
 
 		return json.dumps(body)
 
@@ -255,3 +285,158 @@ class StaticHandler(BaseWebHandler):
 		self.set_header("Content-Type", self.mimetype)
 		self.set_header("Cache-Control", "no-cache")
 		self.write(open(self.content_dir + "/" + path).read())
+
+class TranscriptHandler(BaseWebHandler):
+	def __init__(self, application, request, **kwargs):
+		super(TranscriptHandler, self).__init__(application, request, **kwargs)
+		self.log = logging.getLogger("elsa.transcript_handler")
+		self.db = kwargs["db"]
+
+
+	def initialize(self, *args, **kwargs):
+		super(TranscriptHandler, self).initialize(*args, **kwargs)
+
+	def get(self):
+		user = DEFAULT_USER
+		limit = self.get_argument("limit", 50)
+		self.set_status(200)
+		self.set_header("Content-Type", "application/javascript")
+		self.write(json.dumps(self.db.execute("SELECT * FROM transcript " +\
+			"WHERE user_id=(SELECT id FROM users WHERE user=?) AND visible=1 " +\
+			"ORDER BY timestamp DESC LIMIT ?", (user, limit)).fetchall()))
+
+	def put(self):
+		user = DEFAULT_USER
+		action = self.get_argument("action")
+		scope = self.get_argument("scope") 
+		ref_id = self.get_argument("ref_id", None)
+		self.log.debug("user: %s, action: %s, scope: %s, ref_id: %s" % (user, action, scope, ref_id))
+		if ref_id:
+			self.db.execute("INSERT INTO transcript (user_id, action, scope, ref_id, timestamp) " +\
+				"VALUES ((SELECT id FROM users WHERE user=?),?,?,?,?)",
+				(user, action, scope, ref_id, time()))
+		else:
+			self.db.execute("INSERT INTO transcript (user_id, action, scope, timestamp) " +\
+			"VALUES ((SELECT id FROM users WHERE user=?),?,?,?)",
+			(user, action, scope, time()))
+		newid = self.db.execute("SELECT * FROM transcript " +\
+			"ORDER BY timestamp DESC LIMIT 1").fetchone()
+		if action == "TAG":
+			tag = self.get_argument("tag")
+			value = self.get_argument("value")
+			if not self.db.execute("INSERT INTO tags (user_id, tag, value, timestamp) " +\
+				"VALUES (?,?,?,?)",
+				(newid["user_id"], tag, value, time())).rowcount:
+				self.set_status(400)
+				self.write("Error tagging value")
+				return
+			self.log.debug("New tag %d %s=%s" % (newid["user_id"], tag, value))
+		elif action == "FAVORITE":
+			value = scope
+			if not self.db.execute("INSERT INTO favorites (user_id, value, timestamp) " +\
+				"VALUES (?,?,?)",
+				(newid["user_id"], value, time())).rowcount:
+				self.set_status(400)
+				self.write("Error setting favorite value")
+				return
+			self.log.debug("New favorite %d %s" % (newid["user_id"], value))
+		self.set_status(200)
+		self.set_header("Content-Type", "application/javascript")
+		self.write(newid)
+
+	def post(self):
+		user = DEFAULT_USER
+		action = self.get_argument("action")
+		id = self.get_argument("id")
+		self.log.debug("user: %s, action: %s, id: %s" % (user, action, id))
+		if action == "HIDE":
+			changed = self.db.execute("UPDATE transcript SET visible=0 " +\
+				"WHERE user_id=(SELECT id FROM users WHERE user=?) " +\
+				"AND id=?", (user, id)).rowcount
+			if not changed:
+				self.set_status(400)
+				self.write("Bad request, unknown user or id")
+				return	
+		else:
+			self.set_status(400)
+			self.write("Bad request, unknown action")
+			return
+
+		self.set_status(200)
+		self.set_header("Content-Type", "application/javascript")
+		self.write({"action": action, "id": id, "status": "ok"})
+
+class SearchResultsHandler(BaseWebHandler):
+	def __init__(self, application, request, **kwargs):
+		super(SearchResultsHandler, self).__init__(application, request, **kwargs)
+		self.log = logging.getLogger("elsa.search_result_handler")
+		self.db = kwargs["db"]
+
+
+	def initialize(self, *args, **kwargs):
+		super(SearchResultsHandler, self).initialize(*args, **kwargs)
+
+	def get(self, id):
+		user = DEFAULT_USER
+		try:
+			id = int(id)
+		except Exception as e:
+			self.log.exception("Failed to parse id", exc_info=e)
+			self.set_status(400)
+			self.write("Invalid id")
+			self.finish()
+			return
+		result = self.db.execute("SELECT * FROM results " +\
+			"WHERE user_id=(SELECT id FROM users WHERE user=?) AND id=?", 
+			(user, id)).fetchone()
+		if not result:
+			self.set_status(404)
+			self.finish()
+			return
+		# ret = {
+		# 	"id": result["id"],
+		# 	"timestamp": result["timestamp"],
+		# 	"results": json.loads(zlib.decompress(base64.decodestring(result["results"])))
+		# }
+		self.set_status(200)
+		self.set_header("Content-Type", "application/javascript")
+		self.write(zlib.decompress(base64.decodestring(result["results"])))
+		# self.write(json.dumps(ret))
+
+class TagsHandler(BaseWebHandler):
+	def __init__(self, application, request, **kwargs):
+		super(TagsHandler, self).__init__(application, request, **kwargs)
+		self.log = logging.getLogger("elsa.search_result_handler")
+		self.db = kwargs["db"]
+
+
+	def initialize(self, *args, **kwargs):
+		super(TagsHandler, self).initialize(*args, **kwargs)
+
+	def get(self):
+		user = DEFAULT_USER
+		limit = self.get_argument("limit", 50)
+		self.set_status(200)
+		self.set_header("Content-Type", "application/javascript")
+		self.write(json.dumps(self.db.execute("SELECT * FROM tags " +\
+			"WHERE user_id=(SELECT id FROM users WHERE user=?) " +\
+			"ORDER BY timestamp DESC LIMIT ?", (user, limit)).fetchall()))
+
+class FavoritesHandler(BaseWebHandler):
+	def __init__(self, application, request, **kwargs):
+		super(FavoritesHandler, self).__init__(application, request, **kwargs)
+		self.log = logging.getLogger("elsa.search_result_handler")
+		self.db = kwargs["db"]
+
+
+	def initialize(self, *args, **kwargs):
+		super(FavoritesHandler, self).initialize(*args, **kwargs)
+
+	def get(self):
+		user = DEFAULT_USER
+		limit = self.get_argument("limit", 50)
+		self.set_status(200)
+		self.set_header("Content-Type", "application/javascript")
+		self.write(json.dumps(self.db.execute("SELECT * FROM favorites " +\
+			"WHERE user_id=(SELECT id FROM users WHERE user=?) " +\
+			"ORDER BY timestamp DESC LIMIT ?", (user, limit)).fetchall()))

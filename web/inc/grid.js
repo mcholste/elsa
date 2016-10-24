@@ -124,10 +124,21 @@ AnalysisTree.prototype.visualize = function(dom_element){
 
 }
 
-function Transcript(){
+function Transcript(callbacks){
   var self = this;
   self.result_history = [];
   self.transcript = [];
+  self.callbacks = callbacks;
+  // Load initial values from ELSA
+  $.get('transcript', null, function(data, status, xhr){
+    //data = JSON.parse(data);
+
+    console.log('data', data);
+    for (var i = data.length - 1; i >= 0; i--){
+      self.transcript.push(data.pop());
+    }
+    self.render();
+  }, 'json');
 }
 
 Transcript.prototype.counter = function(){
@@ -140,20 +151,79 @@ Transcript.prototype.log_query = function (data){
 
 Transcript.prototype.update = function(action, data){
   var self = this;
-  var scope = '';
-  if (action) scope += action + ' ';
-  if (typeof(data) === 'object'){
-    scope += data.es_query.query.query_string.query;
-    if (typeof(data.query.groupby) !== 'undefined'){
-      console.log(data.query.groupby[1]);
-      scope += ' (' + data.query.groupby.slice(1, data.query.groupby[0].length).join(",")
-        + ')';
-    }
+  // Searches are automatically added to the transcript server-side
+  if (action === 'SEARCH'){
+    console.log('search update data', data);
+    self.transcript.push({id: data.transcript_id, action:action, scope:data.scope, ref_id:data.id});
+    self.render();
   }
   else {
-    scope += data;
+    console.log('put transcript', data);
+    //var put_data = { action:action, scope:data.scope };
+    data.action = action;
+    if (typeof(data.id) !== 'undefined') data.ref_id = data.id;
+    // Write to the server
+    $.ajax('transcript', {
+      method: 'PUT',
+      data: data, 
+      success: function(data, status, xhr){
+        console.log(data, status);
+        self.transcript.push(data);
+        self.render();  
+      }
+    }).fail(function(e){
+      console.error(e);
+      var errstr = 'Unable to update transcript';
+      console.error(errstr);
+      self.callbacks.error(errstr);
+    });
   }
-  self.transcript.push([action, scope]);
+  
+  return action + ' ' + data.scope;
+}
+
+// Transcript.prototype.update_checked = function(ref_id){
+//   var self = this;
+//   for (var i = 0, len = self.transcript.length; i < len; i++){
+//     var item = self.transcript[i];
+//     if 
+// }
+
+Transcript.prototype.get_id = function(id){
+  var self = this;
+  for (var i = 0, len = self.transcript.length; i < len; i++){
+    if (self.transcript[i].id === id) return i;
+  }
+  throw Error('Id ' + id + ' not found.');
+};
+
+Transcript.prototype.latest_search = function(){
+  var self = this;
+  for (var i = self.transcript.length - 1; i >= 0; i--){
+    if (self.transcript[i].action === 'SEARCH') return self.transcript[i];
+  }
+}
+
+// Not a standard method, this is expected to be called with a .bind([self,item])
+Transcript.prototype.load_item = function(e){
+  console.log('load_item this', this);
+  if (!this.length === 2) throw Error('load_item called without bind([self,item])');
+  var self = this[0];
+  var item = this[1];
+  if (e && e.hasOwnProperty('preventDefault')) e.preventDefault();
+  self.selected = item.ref_id;
+  $.get('results/' + item.ref_id, null, 
+    function(data, status, xhr){ render_search_result(data, status); self.render(); }, 'json')
+  .fail(function(e){
+    console.error(e);
+    var errstr = 'Unable to get result';  
+    console.error(errstr);
+    self.callbacks.error(errstr);
+  });
+};
+
+Transcript.prototype.render = function(){
+  var self = this;
   $('#transcript_container').empty();
   $('#transcript_container').addClass('respect-whitespace');
   var h1 = document.createElement('h1');
@@ -162,37 +232,130 @@ Transcript.prototype.update = function(action, data){
   $('#transcript_container').append(h1);
   var table = document.createElement('table');
   var tbody = document.createElement('tbody');
-  var indent_level = 0;
+  // var indent_level = 0;
   for (var i = 0, len = self.transcript.length; i < len; i++){
     var item = self.transcript[i];
-    if (item[0] === 'PIVOT') indent_level++;
+    if (item.visible === 0) continue;
+    // if (item.action === 'PIVOT') indent_level++;
     var row = document.createElement('tr');
     var cell = document.createElement('td');
-    var tabs = '';
-    for (var j = 0, jlen = indent_level; j < jlen; j++){
-      tabs += '    ';
+    $(cell).attr('data_field', 'transcript_id');
+    $(cell).attr('data_value', item.id);
+    // var tabs = '';
+    // for (var j = 0, jlen = indent_level; j < jlen; j++){
+    //   tabs += '    ';
+    // }
+    
+    var text = document.createTextNode(item.action + ' ' + item.scope);
+    if (item.action === 'PIVOT'){
+      // Indent and print ref_id
+      var a = document.createElement('a');
+      $(a).text(item.ref_id);
+      console.log('pivot item', item);
+      a.title  = self.transcript[ self.get_id(item.ref_id) ].scope;
+      $(a).click(self.load_item.bind([self, item]));
+      $(a).addClass('pivot_reference');
+      var span = document.createElement('span');
+      span.appendChild(document.createTextNode('\t'));
+      span.appendChild(a);
+      span.appendChild(document.createTextNode(' '));
+      span.appendChild(document.createTextNode(item.scope));
+      cell.appendChild(span);
     }
-    var text = document.createTextNode(tabs + item[1]);
-    cell.appendChild(text);
+    // var text = document.createTextNode(tabs + item.action + ' ' + item.scope);
+    // Create link if this is a search
+    else if (item.action === 'SEARCH'){
+      console.log('rendering search');
+      var a = document.createElement('a');
+      a.appendChild(text)
+      $(a).click(self.load_item.bind([self, item]));
+      var span = document.createElement('i');
+      $(span).addClass('fa fa-close fa-fw');
+      $(span).click(function(e){
+        var item = this; // use bound scope for item
+        console.log(item);
+        console.log('hiding transcript id ' + item.id);
+        $.post('transcript', {action:'HIDE', id:item.id}, function(e){
+          var item = this;
+          item.visible = 0;
+          self.render();
+          self.callbacks.notify('Transcript ' + item.id + ' hidden');
+        }.bind(item)).fail(function(e){
+          console.error(e);
+          var errstr = 'Unable to set visibility';
+          console.error(errstr);
+          self.callbacks.error(errstr);
+        });
+
+      }.bind(item));
+      // console.log('selected: ' + self.selected + ', item ref: ' + item.ref_id);
+      // if (self.selected === item.ref_id)
+      //   $(span).addClass('fa fa-check-square-o fa-fw');
+      // else
+      //   $(span).addClass('fa fa-square-o fa-fw');
+      cell.appendChild(span);
+      cell.appendChild(a);
+    }
+    else {
+      cell.appendChild(text);
+    }
+    
+    //cell.appendChild(text);  
+    
     row.appendChild(cell);
     tbody.appendChild(row);
   }
   table.appendChild(tbody);
   $('#transcript_container').append(table);
-  
-  return scope;
 };
 
 var ANALYSIS_TREE = new AnalysisTree();
-var TRANSCRIPT = new Transcript();
+var TRANSCRIPT = new Transcript({
+  error: function(s){ set_current_action('ERROR: ' + s) },
+  notify: function(s){ notify(s); }
+});
 var TAGS = {};
 var FAVORITES = {};
 
+$( document ).ajaxStart(function() {
+  $('#modal').empty();
+  var icon = document.createElement('span');
+  $('#modal_outer').removeClass('background').addClass('foreground');
+  $(icon).addClass('fa fa-cloud fa-fw');
+  $('#modal').append(icon);
+});
+
+$( document ).ajaxComplete(function() {
+  $('#modal').empty();
+  $('#modal_outer').removeClass('foreground').addClass('background');
+});
+
 $(document).on('ready', function(){
-  $('#start_date').val('2016-09-09T00:00:00');
+  $.get('tags', null, function(data, status, xhr){
+    console.log('tags', data);
+    for (var i = 0, len = data.length; i < len; i++){
+      if (typeof(TAGS[ data[i].tag ]) === 'undefined'){
+        TAGS[ data[i].tag ] = {};
+      }
+      TAGS[ data[i].tag ][ data[i].value ] = 1;
+    }
+    update_tags();
+  }, 'json');
+  $.get('favorites', null, function(data, status, xhr){
+    console.log('favorites', data);
+    for (var i = 0, len = data.length; i < len; i++){
+      FAVORITES[ data[i].value ] = 1;
+    }
+    update_favorites();
+  }, 'json');
+  TRANSCRIPT.render();
+  //$('#sidebar').height($(window).height());
+  //$('#transcript_container').height($(window).height());
+  $('#start_date').val('2016-09-06T14:46:00');
+  $('#end_date').val('2016-09-06T14:47:00');
   //$('#start_date').datepicker();
   //$('#end_date').datepicker();
-  $('#search_form input[name="query"]').val('class:BRO_WEIRD | groupby srcip,name,dstip | sankey');
+  $('#search_form input[name="query"]').val('_exists_:proto | groupby srcip,name,dstip | sankey');
   $('#query_submit').on('click', submit_form);
 });
 
@@ -217,6 +380,47 @@ function clean_record(item){
   return item;
 }
 
+function render_search_result(data, status, xhr){
+  console.log(data, xhr, status);
+  if (typeof(xhr) !== 'undefined'){
+    TRANSCRIPT.log_query(data);
+    var action = TRANSCRIPT.update('SEARCH', data);
+    ANALYSIS_TREE.propagate(action);
+  }
+  $('#search_form input[name="search"]').val(data.raw_query);
+  //build_histogram(data);
+  if (typeof(data.results.aggregations) !== 'undefined' &&
+    typeof(data.results.aggregations.date_histogram) !== 'undefined')
+    build_c3_multi_histogram(data);
+    //build_c3_histogram(data);
+  else if (typeof(data.results.aggregations) !== 'undefined') 
+    build_c3_bar_chart(data);
+  // Draw grid of results
+  // var grid_el = document.createElement('div');
+  // grid_el.id = 'grid';
+  // $('body').append(grid_el);
+  var raw_data = [];
+  for (var i = 0, len = data.results.hits.hits.length; i < len; i++){
+    raw_data.push(clean_record(data.results.hits.hits[i]._source));
+  }
+  
+  $('#grid_container').empty();
+  $('#grid_container').append(get_table(raw_data, raw_data));
+
+  if (typeof(data.query.viz) !== 'undefined'){
+    $('#viz_container').height(500);
+    console.log(data.query.viz);
+    for (var i = 0, len = data.query.viz.length; i < len; i++){
+      var viz = data.query.viz[i][0];
+      for (var k in data.results.aggregations){
+        if (k === 'date_histogram') continue;
+        var graph = build_graph_from_hits(data.results.aggregations[k].buckets);
+        viz_map[viz](graph);
+      }
+    }
+  }
+}
+
 function submit_form(e){
   if (e) e.preventDefault();
 
@@ -230,42 +434,7 @@ function submit_form(e){
   if (start_date) query_string += '&start=' + start_date;
   if (end_date) query_string += '&end=' + end_date;
 
-  $.get(query_string, function(data, status, xhr){
-    console.log(data, xhr, status);
-    var action = TRANSCRIPT.update('SEARCH', data);
-    ANALYSIS_TREE.propagate(action);
-    //build_histogram(data);
-    if (typeof(data.results.aggregations) !== 'undefined' &&
-      typeof(data.results.aggregations.date_histogram) !== 'undefined')
-      build_c3_multi_histogram(data);
-      //build_c3_histogram(data);
-    else if (typeof(data.results.aggregations) !== 'undefined') 
-      build_c3_bar_chart(data);
-    // Draw grid of results
-    // var grid_el = document.createElement('div');
-    // grid_el.id = 'grid';
-    // $('body').append(grid_el);
-    var raw_data = [];
-    for (var i = 0, len = data.results.hits.hits.length; i < len; i++){
-      raw_data.push(clean_record(data.results.hits.hits[i]._source));
-    }
-    
-    $('#grid_container').empty();
-    $('#grid_container').append(get_table(raw_data, raw_data));
-
-    if (typeof(data.query.viz) !== 'undefined'){
-      $('#viz_container').height(500);
-      console.log(data.query.viz);
-      for (var i = 0, len = data.query.viz.length; i < len; i++){
-        var viz = data.query.viz[i][0];
-        for (var k in data.results.aggregations){
-          if (k === 'date_histogram') continue;
-          var graph = build_graph_from_hits(data.results.aggregations[k].buckets);
-          viz_map[viz](graph);
-        }
-      }
-    }
-  });
+  $.get(query_string, render_search_result);
 }
 
 
@@ -347,8 +516,8 @@ function build_bar_chart(result_data){
   // append a 'group' element to 'svg'
   // moves the 'group' element to the top left margin
   var svg = d3.select("#histogram_container").append("svg")
-    .attr("width", width + margin.left + margin.right)
-    .attr("height", height + margin.top + margin.bottom)
+    .attr("width", width)// + margin.left + margin.right)
+    .attr("height", height)// + margin.top + margin.bottom)
   .append("g")
     .attr("transform", 
           "translate(" + margin.left + "," + margin.top + ")");
@@ -473,6 +642,7 @@ function build_histogram(result_data){
   var margin = {top: 10, right: 30, bottom: 30, left: 40},
       width = 960 - margin.left - margin.right,
       height = 500 - margin.top - margin.bottom;
+  console.log('histo width ' + width);
 
   // parse the date / time
   var parseDate = d3.timeParse("%Y-%d-%mT%H:%M:%SZ");
@@ -503,7 +673,8 @@ function build_histogram(result_data){
   // append a 'group' element to 'svg'
   // moves the 'group' element to the top left margin
   var svg = d3.select("#histogram_container").append("svg")
-    .attr("width", width + margin.left + margin.right)
+    .attr('width', '100%')
+    //.attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
   .append("g")
     .attr("transform", 
@@ -552,7 +723,8 @@ function build_c3_multi_histogram(data){
   
   var div = document.createElement('div');
   div.id = 'date_histogram';
-  $(div).width('100%');
+  //$(div).width('100%');
+  $(div).width($('#histogram_container').width() - 10);
   
   $('#histogram_container').append(div);
   var json_data = [];
@@ -576,7 +748,7 @@ function build_c3_multi_histogram(data){
     });
     
     if (Object.keys(to_push).length < 2) continue;
-    console.log('to_push', to_push);
+    //console.log('to_push', to_push);
     json_data.push(to_push);
   }
 
@@ -652,7 +824,13 @@ function build_c3_histogram(data){
 }
 
 function set_current_action(action){
+  console.log('action: ' + action);
   $('#action_container').text(action);
+}
+
+function notify(s){
+  console.log('notify: ' + s);
+  $('#notification_container').text(s);
 }
 
 function get_table(data, full_data, onclicks, onhovers, reorder, sortby, sortdir, filter_field, filter_text){
@@ -770,18 +948,18 @@ function get_table(data, full_data, onclicks, onhovers, reorder, sortby, sortdir
   for (var i = 0, len = cols.length; i < len; i++){
     var field = cols[i];
     // Figure out if we are sorting by this col and if it is desc
-    var sortclass = 'etch-complex-table__cell--sortasc';
-    if (field === sortby && sortdir !== 'asc') 
-      sortclass = 'etch-complex-table__cell--sortdesc';
+    // var sortclass = 'etch-complex-table__cell--sortasc';
+    // if (field === sortby && sortdir !== 'asc') 
+    //   sortclass = 'etch-complex-table__cell--sortdesc';
     var th_el = document.createElement('th');
-    $(th_el).addClass('etch-complex-table__thead__th '
-      + 'etch-complex-table__cell '
-      + 'etch-complex-table__cell--sortable '
-      + 'etch-complex_table__cell--alignright '
-      + sortclass);
+    // $(th_el).addClass('etch-complex-table__thead__th '
+    //   + 'etch-complex-table__cell '
+    //   + 'etch-complex-table__cell--sortable '
+    //   + 'etch-complex_table__cell--alignright '
+    //   + sortclass);
     var text_el = document.createTextNode(field);
     var span_el = document.createElement('span');
-    $(span_el).addClass('etch-column__title');
+    // $(span_el).addClass('etch-column__title');
     $(span_el).append(text_el);
     span_el.data = field;
     $(span_el).on('click', function(e){
@@ -790,7 +968,7 @@ function get_table(data, full_data, onclicks, onhovers, reorder, sortby, sortdir
     })
     $(th_el).append(span_el);
     var div_el = document.createElement('div');
-    $(div_el).addClass('etch-field');
+    // $(div_el).addClass('etch-field');
     var input_el = document.createElement('input');
     input_el.type = 'text';
     input_el.name = field;
@@ -903,22 +1081,24 @@ function get_table(data, full_data, onclicks, onhovers, reorder, sortby, sortdir
 function handle_context_menu_callback(key, options) {
   var content = $(this).text();
   content = content.split('\n')[0];
+  var item = TRANSCRIPT.latest_search();
   console.log(this, content, key, options);
   var key = key.toUpperCase();
   
   if (key === 'PIVOT'){
-    var scope = TRANSCRIPT.update(key, content);
+    var scope = TRANSCRIPT.update(key, {scope:content, id:item.id});
     ANALYSIS_TREE.propagate(content, 
       TRANSCRIPT.transcript[TRANSCRIPT.transcript.length - 1], true);
     set_current_action(scope);
-    $('#search_form input[name="search"]').val(content);
-    submit_form();
+    TRANSCRIPT.load_item.bind([TRANSCRIPT, item]).call();
+    // $('#search_form input[name="search"]').val(content);
+    // submit_form();
   }
   else if (key === 'NOTE'){
     create_note_dialog(content);
   }
   else if (key === 'SCOPE'){
-    var scope = TRANSCRIPT.update(key, content);
+    var scope = TRANSCRIPT.update(key, {scope:content});
     set_current_action(scope);
     ANALYSIS_TREE.propagate(content, 
       TRANSCRIPT.transcript[TRANSCRIPT.transcript.length - 1]);
@@ -929,10 +1109,10 @@ function handle_context_menu_callback(key, options) {
   else if (key === 'FAVORITE'){
     FAVORITES[content] = TRANSCRIPT.counter();
     update_favorites();
-    var scope = TRANSCRIPT.update(key, content);
+    var scope = TRANSCRIPT.update(key, {scope:content});
   }
   else {
-    var scope = TRANSCRIPT.update(key, content);
+    var scope = TRANSCRIPT.update(key, {scope:content});
     ANALYSIS_TREE.propagate(content, 
       TRANSCRIPT.transcript[TRANSCRIPT.transcript.length - 1]);
   }
@@ -1028,7 +1208,11 @@ function create_tag_dialog(content){
     event.preventDefault();
     console.log('TAG', this);
     var tagval = $('#tag').val();
-    TRANSCRIPT.update('TAG', tagval + ' ' + content);
+    TRANSCRIPT.update('TAG', {
+      scope:tagval + ' ' + content,
+      tag: tagval,
+      value: content
+    });
     if (typeof(TAGS[tagval]) === 'undefined') TAGS[tagval] = {};
     TAGS[tagval][content] = TRANSCRIPT.counter();
     update_tags();
@@ -1095,7 +1279,7 @@ function update_favorites(content){
     $(cell).addClass('tag');
     row.appendChild(cell);
     var img = document.createElement('i');
-    $(img).addClass('fa fa-star');
+    $(img).addClass('fa fa-star golden');
     cell.appendChild(img);
     var text = document.createTextNode(favorite + ' ' + FAVORITES[favorite]);
     cell.appendChild(text);
@@ -1128,8 +1312,8 @@ function add_link(graph, src_id, dst_id, value){
       return;
     }
   }
-  console.log('linking ' + src_id + ' to ' + dst_id + ' with values ' +
-    graph.nodes[src_id] + ' and ' + graph.nodes[dst_id]);
+  // console.log('linking ' + src_id + ' to ' + dst_id + ' with values ' +
+  //   graph.nodes[src_id] + ' and ' + graph.nodes[dst_id]);
   graph.links.push({
     source: src_id,
     target: dst_id,
@@ -1170,7 +1354,7 @@ function build_graph_from_hits(data){
       }
     }
     if (!found){
-      console.log('Did not find ' + graph.links[i].source);
+      //console.log('Did not find ' + graph.links[i].source);
       graph.nodes.push({name: graph.links[i].source});
     }
 
@@ -1182,7 +1366,7 @@ function build_graph_from_hits(data){
       }
     }
     if (!found){
-      console.log('Did not find ' + graph.links[i].target);
+      //console.log('Did not find ' + graph.links[i].target);
       graph.nodes.push({name: graph.links[i].target});
     }
   }

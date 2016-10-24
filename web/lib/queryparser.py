@@ -79,15 +79,15 @@ class Parser:
 
 		
 
-		# time_filter = {
-		# 	"range": { "@timestamp": {
-		# 			"gte": start_time,
-		# 			"lte": end_time
-		# 		}
-		# 	}
-		# }
+		time_filter = {
+			"range": { "@timestamp": {
+					"gte": start_time,
+					"lte": end_time
+				}
+			}
+		}
 
-		# filters = [time_filter]
+		filters = [time_filter]
 
 		max_buckets = 100
 
@@ -144,9 +144,18 @@ class Parser:
 		# Default is to groupby time histogram
 		return {
 				"query": {
-					"query_string": {
-						"query": query_string
-					}	
+					"bool": {
+						"must": [
+							{
+								"query": {
+									"query_string": {
+										"query": query_string
+									}
+								}
+							}
+						],
+						"filter": filters
+					}
 				},
 				"aggs": aggs
 			}, parsed
