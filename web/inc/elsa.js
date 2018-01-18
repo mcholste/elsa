@@ -4277,13 +4277,17 @@ YAHOO.ELSA.getPreferences = function(){
 			var callback = function(p_oNewValue){
 				logger.log('callback p_oNewValue:', p_oNewValue);
 				logger.log('setting ' + oDataTable.getCellEditor().getColumn().field + ' to ', p_oNewValue);
+				logger.log('jsonstring: ' + YAHOO.lang.JSON.stringify(p_oNewValue));
 				
 				p_oNewValue = p_oNewValue[ oDataTable.getCellEditor().getColumn().field ];
+				// data was unicode escaped which would have changed underscores into \\u005f
+				p_oNewValue = p_oNewValue.replace('\\u005f','_');
 				oDataTable.updateCell(
 					oDataTable.getCellEditor().getRecord(),
 					oDataTable.getCellEditor().getColumn(),
 					p_oNewValue
 				);
+
 				oDataTable.getCellEditor().unblock();
 				oDataTable.getCellEditor().cancel(); //hides box
 			};

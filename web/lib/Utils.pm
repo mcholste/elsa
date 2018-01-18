@@ -19,8 +19,9 @@ use Sys::Hostname;
 use Try::Tiny;
 use Ouch qw(:trytiny);;
 use Exporter qw(import);
+use Encode;
 
-our @EXPORT = qw(catch_any epoch2iso);
+our @EXPORT = qw(catch_any epoch2iso unicode_escape);
 
 use CustomLog;
 use Results;
@@ -847,6 +848,60 @@ sub catch_any {
 	$e = new Ouch(500, $1, {});
 	$e->shortmess($1);
 	return $e;
+}
+
+sub unicode_escape {
+
+        my $str = shift;
+        my $unicode_escaped_str = "";
+
+	if (not $str) {
+		return;
+	}
+
+        my $str_len = length($str);
+        for (my $i = 0; $i <= $str_len; $i++) {
+		my $char = substr($str, $i, 1);
+
+		my $char_dec = ord($char);
+		
+		my $is_alphanumeric = ($char_dec >= 48 && $char_dec <= 57)
+				   || ($char_dec >= 65 && $char_dec <= 90)
+				   || ($char_dec >= 97 && $char_dec <= 122); 
+
+		if (not $is_alphanumeric) {
+		
+			my $unicode_char_octets = Encode::encode("utf-16", 
+								 $char);
+
+			my $unicode_char_num_octets = length($unicode_char_octets);
+
+			if ($unicode_char_num_octets == 4) {
+
+				my $third_octet = substr($unicode_char_octets, 
+							 2, 1);
+
+				my $fourth_octet = substr($unicode_char_octets, 
+							  3, 1);
+
+				my $unicode_escaped_char = sprintf(
+							"\\u%02x%02x", 
+							ord($third_octet), 
+							ord($fourth_octet));
+
+				$unicode_escaped_str .= $unicode_escaped_char;
+
+			}
+		
+		} else {
+
+			$unicode_escaped_str .= $char;
+
+		}
+
+        }
+
+        return $unicode_escaped_str;
 }
 
 1;
