@@ -121,7 +121,10 @@ EOHTML
 		$self->controller->get_form_params($user, sub {
 			my $form_params = shift;
 			if($form_params){
-				$HTML .= 'var formParams = YAHOO.ELSA.formParams = ' . $self->controller->json->encode($form_params) . ';';
+				my $form_params_tmp = $self->controller->json->encode($form_params);
+				$form_params_tmp =~ s/\\\\u/\\u/g; 
+
+				$HTML .= 'var formParams = YAHOO.ELSA.formParams = ' . $form_params_tmp . ';';
 			}
 			else {
 				$self->controller->log->error('Unable to get form params: ' . Dumper($form_params));

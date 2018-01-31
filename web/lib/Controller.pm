@@ -1048,7 +1048,11 @@ sub set_preference {
 	$query = 'SELECT * FROM preferences WHERE id=? AND uid=?';
 	$sth = $self->db->prepare($query);
 	$sth->execute($args->{id}, $args->{uid});
-	$cb->($sth->fetchrow_hashref);
+	my $row = $sth->fetchrow_hashref;
+        $row->{name} = unicode_escape($row->{name});
+        $row->{type} = unicode_escape($row->{type});
+        $row->{value} = unicode_escape($row->{value});
+	$cb->($row);
 }
 
 sub add_preference {
@@ -1081,6 +1085,7 @@ sub delete_preference {
 	$query = 'DELETE FROM preferences WHERE uid=? AND id=?';
 	$sth = $self->db->prepare($query);
 	$sth->execute($args->{uid}, $args->{id});
+        $args->{id} = unicode_escape($args->{id});
 	
 	$cb->({ id => $args->{id} });
 }
@@ -1167,7 +1172,7 @@ sub delete_saved_results {
 	my ($self, $args, $cb) = @_;
 	$self->log->debug('args: ' . Dumper($args));
 	unless ($args->{qid}){
-		throw(400, 'Invalid args, no qid: ' . Dumper($args));
+		throw(400, 'Invalid args, no qid');
 	}
 	my ($query, $sth);
 	# Verify this query belongs to the user
@@ -1176,7 +1181,7 @@ sub delete_saved_results {
 	$sth->execute($args->{qid});
 	my $row = $sth->fetchrow_hashref;
 	unless ($row){
-		throw(400, 'Invalid args, no results found for qid: ' . Dumper($args));
+		throw(400, 'Invalid args, no results found for qid');
 	}
 	unless ($row->{uid} eq $args->{user}->uid or $args->{user}->is_admin){
 		$self->_error('Unable to alter these saved results based on your authorization: ' . Dumper($args));
@@ -1189,7 +1194,7 @@ sub delete_saved_results {
 		$cb->({deleted => $sth->rows});
 	}
 	else {
-		throw(404, 'Query ID ' . $args->{qid} . ' not found!');
+		throw(404, 'Query ID not found!');
 	}
 }
 
@@ -2497,7 +2502,7 @@ sub preference {
 		$sth->execute($args->{user}->uid, $args->{id});
 	}
 	elsif ($args->{action} eq 'update'){
-		throw(400, 'Need col/val', { col => $args->{col} }) unless $args->{col} and defined $args->{val};
+		throw(400, 'Need col/val', { col => 1 }) unless $args->{col} and defined $args->{val};
 		if ($args->{col} eq 'name'){
 			$query = 'UPDATE preferences SET name=? WHERE id=? AND uid=?';
 		}
@@ -2508,7 +2513,7 @@ sub preference {
 		$sth->execute($args->{val}, $args->{id}, $args->{user}->uid);
 	}
 	else {
-		throw(404, 'Invalid action', { action => $args->{action} });
+		throw(404, 'Invalid action', { action => 1 });
 	}
 	
 	$cb->({ ok => $sth->rows });

@@ -551,6 +551,9 @@ sub _get_preferences {
 	my $prefs = {};
 	my @grid;
 	while (my $row = $sth->fetchrow_hashref){
+		$row->{name} = unicode_escape($row->{name});
+		$row->{type} = unicode_escape($row->{type});
+		$row->{value} = unicode_escape($row->{value});
 		push @grid, $row;
 		$prefs->{ $row->{type} } ||= {};
 		if ($row->{value} =~ /^[\[\{]/){
@@ -560,7 +563,7 @@ sub _get_preferences {
 			if ($@){
 				$self->log->error('Error decoding preference value ' . $row->{value} . ': ' . $@);
 			}
-		}
+		}	
 		$prefs->{ $row->{type} }->{ $row->{name} } = $row->{value};
 	}
 	return { tree => $prefs, grid => \@grid };
